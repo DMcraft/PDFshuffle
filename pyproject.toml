@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "pdfshuffle"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+PyPDF2 = "^3.0.1"
+PyQt5 = "^5.15.9"
+pdf2image = "^1.16.3"
+loguru = "^0.7.1"
+pytwain = "^2.1.0"
+pytest = "^7.4.2"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
