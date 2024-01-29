@@ -7,17 +7,20 @@ from PyQt5.QtCore import QSize
 
 from pagelist import PageWidget, PRoleID
 from pdfdata import PDFData
+from scaner import ScanerWindow
 from window import Ui_MainWindow
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore
 
 
 # pyuic5 window.ui -o window.py
+
 
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.wScan = None  # объект окна сканера
         self.pathfile = config.CURRENT_PATH
 
         # Set up the UI
@@ -25,10 +28,41 @@ class MyWindow(QMainWindow):
         self.ui.setupUi(self)
         self.setWindowTitle('PDF Shuffle')
 
+        self.ui.comboBoxSizePaper.setCurrentIndex(
+            0 if self.ui.comboBoxSizePaper.findText(config.PAGE_PAPER_SIZE) < 0 else
+            self.ui.comboBoxSizePaper.findText(config.PAGE_PAPER_SIZE))
+        self.ui.comboBoxOrientation.setCurrentIndex(
+            0 if self.ui.comboBoxOrientation.findText(config.PAGE_PAPER_ORIENTATION) < 0 else
+            self.ui.comboBoxOrientation.findText(config.PAGE_PAPER_ORIENTATION))
+
+        self.ui.comboBoxPaperDPI.addItem('75 dpi', 75)
+        self.ui.comboBoxPaperDPI.addItem('100 dpi', 100)
+        self.ui.comboBoxPaperDPI.addItem('150 dpi', 150)
+        self.ui.comboBoxPaperDPI.addItem('200 dpi', 200)
+        self.ui.comboBoxPaperDPI.addItem('300 dpi', 300)
+        self.ui.comboBoxPaperDPI.addItem('600 dpi', 600)
+        self.ui.comboBoxPaperDPI.addItem('1200 dpi', 1200)
+        self.ui.comboBoxPaperDPI.setCurrentIndex(
+            0 if self.ui.comboBoxPaperDPI.findData(config.PAGE_PAPER_DPI) < 0 else
+            self.ui.comboBoxPaperDPI.findData(config.PAGE_PAPER_DPI))
+
+
+        self.ui.checkBoxImageFormatting.setChecked(config.PAGE_PAPER_FORMATTING)
+        self.ui.checkBoxImageExtend.setChecked(config.PAGE_IMAGE_EXTEND)
+
         self.pagesBasic = PageWidget(self.ui.centralwidget)
         self.ui.BasicLayout.addWidget(self.pagesBasic)
         self.pagesSecond = PageWidget(self.ui.centralwidget)
         self.ui.SecondLayout.addWidget(self.pagesSecond)
+
+        self.ui.comboBoxOrientation.currentIndexChanged.connect(self.changePaperOrientation)
+        self.ui.comboBoxSizePaper.currentIndexChanged.connect(self.changePaperSize)
+        self.ui.comboBoxPaperDPI.currentIndexChanged.connect(self.changePaperDPI)
+
+        self.ui.checkBoxImageFormatting.stateChanged.connect(self.changePaperFormatting)
+        self.ui.checkBoxImageExtend.stateChanged.connect(self.changeImageExtend)
+
+        self.ui.pushButtonScan.clicked.connect(self.winScaner)
 
         self.ui.toolButtonSecondView.clicked.connect(
             lambda: self.pagesSecond.setVisible(False if self.pagesSecond.isVisible() else True))
@@ -55,6 +89,7 @@ class MyWindow(QMainWindow):
         self.ui.actionSaveTo.triggered.connect(lambda: self.pressedButtonSave(self.pagesBasic))
         self.ui.actionExit.triggered.connect(self.close)
         self.ui.actionAbout.triggered.connect(self.winAbout)
+        self.ui.actionScan.triggered.connect(self.winScaner)
 
         self.pagesBasic.connectAddFile(self.pressedButtonAdd)
         self.pagesSecond.connectAddFile(self.pressedButtonAdd)
@@ -131,25 +166,66 @@ class MyWindow(QMainWindow):
                 pid = pdf.data[num_page]
                 pages.addPage(num_page, pid.name_page, pid.pix)
 
+    def changePaperSize(self, index):
+        config.PAGE_PAPER_SIZE = self.ui.comboBoxSizePaper.currentText()
+
+    def changePaperOrientation(self, index):
+        config.PAGE_PAPER_ORIENTATION = self.ui.comboBoxOrientation.currentText()
+
+    def changePaperDPI(self, index):
+        config.PAGE_PAPER_DPI = self.ui.comboBoxPaperDPI.currentData()
+
+    def changePaperFormatting(self, state):
+        if state == QtCore.Qt.Checked:
+            config.PAGE_PAPER_FORMATTING = True
+        else:
+            config.PAGE_PAPER_FORMATTING = False
+
+    def changeImageExtend(self, state):
+        if state == QtCore.Qt.Checked:
+            config.PAGE_IMAGE_EXTEND = True
+        else:
+            config.PAGE_IMAGE_EXTEND = False
+
+    @QtCore.pyqtSlot(object)
+    def addScanImage(self, image):
+        num_page = pdf.add_image_file('', img=image) - 1
+        pid = pdf.data[num_page]
+        self.pagesSecond.addPage(num_page, pid.name_page, pid.pix)
+
     def resizeEvent(self, a0: QtGui.QResizeEvent) -> None:
         self.updatePages()
 
     def winAbout(self):
         QMessageBox.about(self, "О программе PDF shuffler",
                           "PDF shuffler - программа для пересортировки  страниц PDF файлов.\n\n"
-                          "version 1.1\n"
+                          "version 2.1\n"
                           "Автор: Алдунин Д.А.\n"
                           "Date production: 2023\n"
                           "Powered by open source software: pdf2image, PyPDF2, PyQt5\n")
 
+    def winScaner(self):
+        if self.wScan is None:
+            self.wScan = ScanerWindow()
+            self.wScan.push_image_scan.connect(self.addScanImage)
+        self.wScan.show()
+
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         config.save_config()
+        if self.wScan is not None:
+            self.wScan.close()
 
 
-if __name__ == '__main__':
-    logger.info('Start program')
-    pdf = PDFData()
+def main():
+    logger.info('Start shuffle!')
     app = QApplication(sys.argv)
     window = MyWindow()
     window.show()
     sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    print('The script is not start on terminal!')
+
+else:
+    pdf = PDFData()

@@ -43,15 +43,23 @@ class PDFData:
 
         return start_page, len(self.data)
 
-    def add_image_file(self, filename):
-        img = Image.open(filename)
+    def add_image_file(self, filename, img=None):
+        if img is None:
+            img = Image.open(filename)
+
         img_byte_arr = io.BytesIO()
 
-        page_size = config.get_size_page()
-        canvas_image = Image.new(mode='RGB', size=page_size, color='white')
-        imgpdf = self.resize_image(img, page_size[0], page_size[1]).convert("RGB")
-        canvas_image.paste(imgpdf, box=((page_size[0] - imgpdf.size[0]) // 2, (page_size[1] - imgpdf.size[1]) // 2))
-        canvas_image.save(img_byte_arr, format='PDF', quality=config.PAGE_DPI)
+        if config.PAGE_PAPER_FORMATTING:
+            page_size = config.get_size_page()
+            canvas_image = Image.new(mode='RGB', size=page_size, color=config.PAGE_BACKGROUND_COLOR)
+            if config.PAGE_IMAGE_EXTEND:
+                image_pdf = self.resize_image(img, page_size[0], page_size[1]).convert("RGB")
+            else:
+                image_pdf = img
+            canvas_image.paste(image_pdf, box=((page_size[0] - image_pdf.size[0]) // 2, (page_size[1] - image_pdf.size[1]) // 2))
+        else:
+            canvas_image = img
+        canvas_image.save(img_byte_arr, format='PDF', quality=config.PAGE_PAPER_DPI)
         pdf = PdfReader(img_byte_arr)
         self.pdf_read.append(pdf)
 

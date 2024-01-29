@@ -7,11 +7,11 @@ authors = ["Your Name <you@example.com>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 PyPDF2 = "^3.0.1"
-PyQt5 = "^5.15.9"
+PyQt5 = "=5.15.2"
 pdf2image = "^1.16.3"
 loguru = "^0.7.1"
-pytwain = "^2.1.0"
 pytest = "^7.4.2"
+python-sane = "^2.9.1"
 
 [tool.poetry.dev-dependencies]
 
@@ -19,3 +19,7 @@ pytest = "^7.4.2"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.pytest.ini_options]
+pythonpath = [
+  "src/pdfshuffle"
+]
