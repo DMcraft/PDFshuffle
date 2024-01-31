@@ -1,4 +1,16 @@
-import os
+#!/usr/bin/env python3
+#----------------------------------------------------------------------------
+# Created By  : Dmitriy Aldunin @DMcraft
+# Created Date: 07/01/2024
+# version ='1.0'
+# Copyright 2024 Dmitriy Aldunin
+# Licensed under the Apache License, Version 2.0
+# ---------------------------------------------------------------------------
+
+""" Вспомогательная программа сканирования изображений.
+
+"""
+
 import sys
 import datetime
 import config
@@ -57,7 +69,6 @@ class ScanerWindow(QWidget):
         self.ui.pushButton_exit.clicked.connect(self.pressedButtonExit)
         self.ui.toolButton_devreload.clicked.connect(self.pressedtoolReloadDevices)
 
-
         # Создание потока
         # create thread
         self.thread = QtCore.QThread()
@@ -69,10 +80,10 @@ class ScanerWindow(QWidget):
         self.get_devices.connect(self.sane_thread.get_devices)
         self.start_scan.connect(self.sane_thread.scaner)
         self.get_options.connect(self.sane_thread.get_options)
-        self.sane_thread.devices_signal.connect(self.setDevices)
+        self.sane_thread.devices_signal.connect(self.set_devices)
         self.sane_thread.message_signal.connect(self.setMessage)
-        self.sane_thread.options_signal.connect(self.setOptions)
-        self.sane_thread.file_scan_signal.connect(self.processingScan)
+        self.sane_thread.options_signal.connect(self.set_options)
+        self.sane_thread.file_scan_signal.connect(self.processing_scan)
         self.thread.started.connect(self.sane_thread.run)
         self.sane_thread.finished.connect(self.thread.quit)
         # self.thread.finished.connect(app.exit)
@@ -84,7 +95,7 @@ class ScanerWindow(QWidget):
         self.ui.comboBox_source.addItem(config.SCAN_SOURCE, config.SCAN_SOURCE)
 
         # reload device
-        self.ui.comboBox_device.addItem('нетути', 'NONE')
+        self.ui.comboBox_device.addItem('Не определен', 'NONE')
         self.ui.comboBox_device.currentIndexChanged.connect(self.deviceChanged)
         if config.SCAN_DEVICE_SIGNATURE == 'NONE':
             self.pressedtoolReloadDevices()
@@ -92,9 +103,9 @@ class ScanerWindow(QWidget):
             self.ui.comboBox_device.addItem(config.SCAN_DEVICE_NAME, config.SCAN_DEVICE_SIGNATURE)
             self.ui.comboBox_device.setCurrentText(config.SCAN_DEVICE_NAME)
 
-
     @QtCore.pyqtSlot(str, object)
-    def setDevices(self, string, devices):
+    def set_devices(self, string, devices):
+        """ function description """
         logger.info(f'text {string}, {devices}')
         self.ui.comboBox_device.clear()
         for device in devices:
@@ -105,10 +116,10 @@ class ScanerWindow(QWidget):
             config.SCAN_DEVICE_SIGNATURE = self.ui.comboBox_device.itemData(0)
 
     @QtCore.pyqtSlot(dict)
-    def setOptions(self, options):
+    def set_options(self, options):
         logger.info(f'option {options}')
 
-        if type(options['mode']) is list:
+        if isinstance(options['mode'], list):
             self.ui.comboBox_mode.clear()
             for opt in options['mode']:
                 self.ui.comboBox_mode.addItem(opt, opt)
@@ -116,7 +127,7 @@ class ScanerWindow(QWidget):
             self.ui.comboBox_mode.addItem(options['mode'], options['mode'])
         self.ui.comboBox_mode.setCurrentIndex(self.ui.comboBox_mode.findData(config.SCAN_MODE))
 
-        if type(options['resolution']) is list:
+        if isinstance(options['resolution'], list):
             self.ui.comboBox_dpi.clear()
             for opt in options['resolution']:
                 self.ui.comboBox_dpi.addItem(f'{opt} dpi', opt)
@@ -124,7 +135,7 @@ class ScanerWindow(QWidget):
             self.ui.comboBox_dpi.addItem(options['resolution'], options['resolution'])
         self.ui.comboBox_dpi.setCurrentIndex(self.ui.comboBox_dpi.findData(config.SCAN_DPI))
 
-        if type(options['source']) is list:
+        if isinstance(options['source'], list):
             self.ui.comboBox_source.clear()
             for opt in options['source']:
                 self.ui.comboBox_source.addItem(opt, opt)
@@ -138,18 +149,21 @@ class ScanerWindow(QWidget):
 
     @QtCore.pyqtSlot(str)
     def set_scan_file_name(self, text):
+        """Function set file name in config."""
         config.SCAN_FILE_NAME = text
 
     @QtCore.pyqtSlot(object)
-    def processingScan(self, image):
+    def processing_scan(self, image):
         logger.info(f'processing image {type(image)}')
 
         if __name__ == '__main__':
             path = Path(self.ui.lineEdit_path.text())
             if path.is_dir():
-                file_name = self.ui.lineEdit_filename.text() + datetime.datetime.today().strftime("%Y%m%d-%H%M%S") + '.jpg'
-                path = Path.joinpath(path,  file_name)
-                image.save(path, quality=90, dpi=(self.ui.comboBox_dpi.currentData(), self.ui.comboBox_dpi.currentData()))
+                file_name = self.ui.lineEdit_filename.text() + datetime.datetime.today().strftime(
+                    "%Y%m%d-%H%M%S") + '.jpg'
+                path = Path.joinpath(path, file_name)
+                image.save(path, quality=90,
+                           dpi=(self.ui.comboBox_dpi.currentData(), self.ui.comboBox_dpi.currentData()))
             else:
                 self.setMessage('Неверное имя каталога')
         else:
@@ -176,7 +190,6 @@ class ScanerWindow(QWidget):
         dirname = QFileDialog.getExistingDirectory(None, 'Выбор пути для сканированных фалов', config.SCAN_PATH)
         self.ui.lineEdit_path.setText(dirname)
         config.SCAN_PATH = dirname
-
 
     def pressedtoolReloadDevices(self):
         if self.sane_thread.isReady():
@@ -205,7 +218,6 @@ class ScanerWindow(QWidget):
             })
         else:
             self.setMessage('Процесс занят выполнением задачи...')
-
 
     def pressedButtonExit(self):
         logger.info('Button Exit')

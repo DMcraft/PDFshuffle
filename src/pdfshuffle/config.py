@@ -10,7 +10,7 @@ def _int_value(s: str) -> int:
     try:
         return int(s)
     except ValueError as v:
-        logger.error('Value error {v}')
+        logger.error(f'Value error {v}')
         return 0
 
 
@@ -66,20 +66,21 @@ def _landing_size(size, land=False):
 
 
 def get_size_page():
-    formatA = {'A10': (1.46, 1.02),
-               'A9': (1.46, 2.05),
-               'A8': (2.05, 2.91),
-               'A7': (2.91, 4.13),
-               'A6': (4.13, 5.83),
-               'A5': (5.83, 8.27),
-               'A4': (8.27, 11.69),
-               'A3': (11.69, 16.54),
-               'A2': (16.54, 23.39),
-               'A1': (23.39, 33.11),
-               'A0': (33.11, 46.81)}
+    format_paper = {'A10': (1.46, 1.02),
+                    'A9': (1.46, 2.05),
+                    'A8': (2.05, 2.91),
+                    'A7': (2.91, 4.13),
+                    'A6': (4.13, 5.83),
+                    'A5': (5.83, 8.27),
+                    'A4': (8.27, 11.69),
+                    'A3': (11.69, 16.54),
+                    'A2': (16.54, 23.39),
+                    'A1': (23.39, 33.11),
+                    'A0': (33.11, 46.81)
+                    }
 
-    if PAGE_PAPER_SIZE in formatA:
-        page_size = formatA[PAGE_PAPER_SIZE]
+    if PAGE_PAPER_SIZE in format_paper:
+        page_size = format_paper[PAGE_PAPER_SIZE]
     else:
         page_size = (0, 0)
 

@@ -11,6 +11,7 @@ from scaner import ScanerWindow
 from window import Ui_MainWindow
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 from PyQt5 import QtGui, QtCore
+import shortcut
 
 
 # pyuic5 window.ui -o window.py
@@ -26,7 +27,7 @@ class MyWindow(QMainWindow):
         # Set up the UI
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.setWindowTitle('PDF Shuffle')
+        self.setWindowTitle('PDF Shuffle (сортировщик страниц)')
 
         self.ui.comboBoxSizePaper.setCurrentIndex(
             0 if self.ui.comboBoxSizePaper.findText(config.PAGE_PAPER_SIZE) < 0 else
@@ -89,6 +90,8 @@ class MyWindow(QMainWindow):
         self.ui.actionSaveTo.triggered.connect(lambda: self.pressedButtonSave(self.pagesBasic))
         self.ui.actionExit.triggered.connect(self.close)
         self.ui.actionAbout.triggered.connect(self.winAbout)
+        self.ui.actionShortcutDesktop.triggered.connect(self.pressed_action_shortcut_desktop)
+        self.ui.actionShortcutMenu.triggered.connect(self.pressed_action_shortcut_menu)
         self.ui.actionScan.triggered.connect(self.winScaner)
 
         self.pagesBasic.connectAddFile(self.pressedButtonAdd)
@@ -114,7 +117,8 @@ class MyWindow(QMainWindow):
             self.pagesBasic.addPage(i, pid.name_page, pid.pix)
 
     def pressedButtonSave(self, pages: PageWidget):
-        filename, _ = QFileDialog.getSaveFileName(None, "Save File", self.pathfile, "PDF Files (*.pdf)")
+        filename, _ = QFileDialog.getSaveFileName(None, "Save File", self.pathfile,
+                                                        "PDF Files (*.pdf)")
         if filename:
             self.pathfile = os.path.dirname(filename)
             if not filename.lower().endswith('.pdf'):
@@ -149,8 +153,9 @@ class MyWindow(QMainWindow):
 
     def pressedButtonAdd(self, pages: PageWidget, filename: str = None):
         if filename is None:
-            filename, _ = QFileDialog.getOpenFileName(None, "Open File", self.pathfile, "PDF Files (*.pdf);;"
-                                                                                        "Image Files (*.jpg *.jpeg *.png)")
+            filename, _ = QFileDialog.getOpenFileName(None, "Open File", self.pathfile,
+                                                            "PDF Files (*.pdf);;"
+                                                            "Image Files (*.jpg *.jpeg *.png)")
         if filename:
 
             if filename.lower().endswith('.pdf'):
@@ -209,6 +214,26 @@ class MyWindow(QMainWindow):
             self.wScan = ScanerWindow()
             self.wScan.push_image_scan.connect(self.addScanImage)
         self.wScan.show()
+
+    @staticmethod
+    def pressed_action_shortcut_desktop():
+        """Вызывает создателя ярлыков на рабочий стол"""
+        shortcut.create_desktop_entry('PDF Shuffle', 'pdfshuffle.py', 'pdfshuffle.png',
+                                      'Пересортировка страниц pdf файлов, добавление изображений',
+                                      categories=shortcut.CATEGORIES_OFFICE)
+        shortcut.create_desktop_entry('PDF Scaner', 'scaner.py', 'pdfscaner.png',
+                                      'Сканер изображений',
+                                      categories=shortcut.CATEGORIES_OFFICE)
+
+    @staticmethod
+    def pressed_action_shortcut_menu():
+        """Вызывает создателя ярлыков в меню"""
+        shortcut.create_desktop_entry('PDF Shuffle', 'pdfshuffle.py', 'pdfshuffle.png',
+                                      'Пересортировка страниц pdf файлов, добавление изображений',
+                                      desktop=False, menu=True, categories=shortcut.CATEGORIES_OFFICE)
+        shortcut.create_desktop_entry('PDF Scaner', 'scaner.py', 'pdfscaner.png',
+                                      'Сканер изображений',
+                                      desktop=False, menu=True, categories=shortcut.CATEGORIES_OFFICE)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         config.save_config()

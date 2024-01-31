@@ -96,7 +96,7 @@ class PageWidget(QListWidget):
             source = event.source()
             for i, item in enumerate(items):
                 # Обрабатываем элемент из источника
-                if not event.keyboardModifiers() == Qt.ShiftModifier:
+                if event.keyboardModifiers() != Qt.ShiftModifier:
                     source.takeItem(source.row(item))
                 else:
                     item = item.clone()

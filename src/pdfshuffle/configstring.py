@@ -1,4 +1,4 @@
-class ConfigString():
+class ConfigString:
     _data = None
 
     def __init__(self, data, typ=str):

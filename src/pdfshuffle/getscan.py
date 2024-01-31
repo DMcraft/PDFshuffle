@@ -5,6 +5,7 @@ from loguru import logger
 
 from PyQt5 import QtCore
 
+
 def _locker(func):
     def wrapper(*args, **kwargs):
         logger.debug('worker LOCK')
@@ -14,10 +15,11 @@ def _locker(func):
         args[0].lock = False
         logger.debug(f'worker UNLOCK, time is {time.perf_counter() - start_time}')
         return original_result
+
     return wrapper
 
-class WorkerDrive(QtCore.QObject):
 
+class WorkerDrive(QtCore.QObject):
     finished = QtCore.pyqtSignal()
 
     devices_signal = QtCore.pyqtSignal(str, object)
@@ -41,9 +43,9 @@ class WorkerDrive(QtCore.QObject):
         # Initialize sane
         try:
             self.version = sane.init()
-            self.message_signal.emit(f'Sane initial completed...', self.version)
+            self.message_signal.emit('Sane initial completed...', self.version)
         except (RuntimeError, sane._sane.error) as err:
-            self.message_signal.emit(f'Error sane initial!!!', err)
+            self.message_signal.emit('Error sane initial!!!', err)
             return None
         logger.info('Initial SANE completed.')
 
@@ -86,9 +88,9 @@ class WorkerDrive(QtCore.QObject):
             # Initialize sane
             try:
                 self.version = sane.init()
-                self.message.emit(f'Sane initial completed...', self.version)
+                self.message.emit('Sane initial completed...', self.version)
             except (RuntimeError, sane._sane.error) as err:
-                self.message_signal.emit(f'Error sane initial!!!', err)
+                self.message_signal.emit('Error sane initial!!!', err)
                 return None
 
         if self.version is not None:
@@ -97,20 +99,20 @@ class WorkerDrive(QtCore.QObject):
                 devices = sane.get_devices()
                 self.devices_signal.emit(f'Sane version {self.version[0]}', devices)
             except (RuntimeError, sane._sane.error) as err:
-                self.message_signal.emit(f'Error getting list devices...', err)
+                self.message_signal.emit('Error getting list devices...', err)
 
     @QtCore.pyqtSlot(dict)
     @_locker
     def scaner(self, param):
         logger.info(f'Start scaner proces {param}')
-        #QtCore.QThread.msleep(3000)
+        # QtCore.QThread.msleep(3000)
         try:
             dev = sane.open(param['device'])
         except (RuntimeError, sane._sane.error) as err:
-            self.message_signal.emit(f'Error open device...', err)
+            self.message_signal.emit('Error open device...', err)
             return
 
-        min_area, max_area = dev.area
+        _, max_area = dev.area  # min_area, max_area
         dev.mode = param['mode']
         dev.resolution = param['dpi']
         dev.source = param['source']
@@ -124,12 +126,10 @@ class WorkerDrive(QtCore.QObject):
                                          int(min(image.width, param['ar_right'] * dpm) - param['cr_right'] * dpm),
                                          int(min(image.height, param['ar_lower'] * dpm) - param['cr_lower'] * dpm)))
                 self.file_scan_signal.emit(crop_image)
-                p = dev.source.lower()
                 if dev.source.lower() == 'flatbed':
                     dev.cancel()
                     break
 
         except (RuntimeError, sane._sane.error) as err:
-            self.message_signal.emit(f'Error scan image...', err)
+            self.message_signal.emit('Error scan image...', err)
         dev.close()
-

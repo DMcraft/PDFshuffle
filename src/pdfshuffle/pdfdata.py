@@ -32,8 +32,6 @@ class PDFData:
 
         pdf = PdfReader(filename)
         self.pdf_read.append(pdf)
-        information = pdf.metadata
-        number_of_pages = len(pdf.pages)
         for i in range(len(pdf.pages)):
             im = images[i].convert("RGB")
             data = im.tobytes("raw", "RGB")
