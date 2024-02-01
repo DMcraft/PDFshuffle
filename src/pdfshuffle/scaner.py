@@ -31,6 +31,7 @@ class ScanerWindow(QWidget):
     get_options = QtCore.pyqtSignal(str)
     start_scan = QtCore.pyqtSignal(dict)
     push_image_scan = QtCore.pyqtSignal(object)
+    close_window = QtCore.pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -141,10 +142,6 @@ class ScanerWindow(QWidget):
             self.ui.comboBox_source.addItem(options['source'], options['source'])
         self.ui.comboBox_source.setCurrentIndex(self.ui.comboBox_source.findData(config.SCAN_SOURCE))
 
-    # @QtCore.pyqtSlot(str)
-    # def set_scan_path(self, text):
-    #     config.SCAN_PATH = text
-
     @QtCore.pyqtSlot(str)
     def set_scan_file_name(self, text):
         """Function set file name in config."""
@@ -233,6 +230,10 @@ class ScanerWindow(QWidget):
                              self.ui.spinBox_right.value(), self.ui.spinBox_lower.value())
 
         config.save_config()
+        self.thread.quit()
+        self.thread.wait()
+        # готов к уничтожению экземпляра
+        self.close_window.emit()
 
 
 def main():

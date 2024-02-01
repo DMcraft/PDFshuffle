@@ -213,7 +213,13 @@ class MyWindow(QMainWindow):
         if self.wScan is None:
             self.wScan = ScanerWindow()
             self.wScan.push_image_scan.connect(self.addScanImage)
-        self.wScan.show()
+            self.wScan.close_window.connect(self.close_win_scaner)
+            self.wScan.show()
+
+    @QtCore.pyqtSlot()
+    def close_win_scaner(self):
+        logger.debug('Shuffle slot close scaner')
+        self.wScan = None
 
     @staticmethod
     def pressed_action_shortcut_desktop():
