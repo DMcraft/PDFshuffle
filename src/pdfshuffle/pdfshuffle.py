@@ -16,12 +16,12 @@ as well as adding sheets of images from files and scanner.
 """
 
 from loguru import logger
+from os import environ
 import shuffle
 
-PRODUCTION = False
 
 if __name__ == '__main__':
-    if PRODUCTION:
+    if environ.get('PRODUCTION') is None:
         logger.remove(handler_id=None)
         logger.add("runtime.log", rotation="10 MB")
 

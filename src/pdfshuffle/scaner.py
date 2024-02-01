@@ -16,6 +16,7 @@ import datetime
 import config
 
 from loguru import logger
+from os import environ
 
 from pathlib import Path
 
@@ -23,9 +24,6 @@ from getscan import WorkerDrive
 from scanerwindow import Ui_ScanerForm
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QWidget
 from PyQt5 import QtGui, QtCore
-
-
-# pyuic5 scaner.ui -o scanerwindow.py
 
 
 class ScanerWindow(QWidget):
@@ -224,6 +222,7 @@ class ScanerWindow(QWidget):
         self.close()
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        logger.info('Close scaner!')
         config.SCAN_DEVICE_NAME = self.ui.comboBox_device.currentText()
         config.SCAN_DEVICE_SIGNATURE = self.ui.comboBox_device.currentData()
         config.SCAN_SOURCE = self.ui.comboBox_source.currentText()
@@ -236,8 +235,13 @@ class ScanerWindow(QWidget):
         config.save_config()
 
 
-if __name__ == '__main__':
+def main():
+    logger.info('Start scaner!')
     app = QApplication(sys.argv)
     window = ScanerWindow()
     window.show()
     sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    print('The script is not start on terminal!')
