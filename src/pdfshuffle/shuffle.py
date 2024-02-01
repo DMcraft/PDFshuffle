@@ -224,20 +224,20 @@ class MyWindow(QMainWindow):
     @staticmethod
     def pressed_action_shortcut_desktop():
         """Вызывает создателя ярлыков на рабочий стол"""
-        shortcut.create_desktop_entry('PDF Shuffle', 'pdfshuffle.py', 'pdfshuffle.png',
+        shortcut.create_desktop_entry('PDF Shuffle', 'pdfshuffle.py', 'icons/pdfshuffle.png',
                                       'Пересортировка страниц pdf файлов, добавление изображений',
                                       categories=shortcut.CATEGORIES_OFFICE)
-        shortcut.create_desktop_entry('PDF Scaner', 'scaner.py', 'pdfscaner.png',
+        shortcut.create_desktop_entry('PDF Scaner', 'scaner.py', 'icons/pdfscaner.png',
                                       'Сканер изображений',
                                       categories=shortcut.CATEGORIES_OFFICE)
 
     @staticmethod
     def pressed_action_shortcut_menu():
         """Вызывает создателя ярлыков в меню"""
-        shortcut.create_desktop_entry('PDF Shuffle', 'pdfshuffle.py', 'pdfshuffle.png',
+        shortcut.create_desktop_entry('PDF Shuffle', 'pdfshuffle.py', 'icons/pdfshuffle.png',
                                       'Пересортировка страниц pdf файлов, добавление изображений',
                                       desktop=False, menu=True, categories=shortcut.CATEGORIES_OFFICE)
-        shortcut.create_desktop_entry('PDF Scaner', 'scaner.py', 'pdfscaner.png',
+        shortcut.create_desktop_entry('PDF Scaner', 'pdfscaner.py', 'icons/pdfscaner.png',
                                       'Сканер изображений',
                                       desktop=False, menu=True, categories=shortcut.CATEGORIES_OFFICE)
 

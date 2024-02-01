@@ -18,8 +18,8 @@ config = configparser.ConfigParser()
 config.read(FILE_CFG)
 
 config['DEFAULT'] = {'program': 'PDFshuffle'}
-config['VERSION'] = {'version': '1.01',
-                     'date': '15.09.2023'}
+config['VERSION'] = {'version': '2.5',
+                     'date': '02.02.2024'}
 
 if not config.has_section('PAGE'):
     config.add_section('PAGE')

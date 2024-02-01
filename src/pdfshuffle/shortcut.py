@@ -7,6 +7,26 @@ ERROR_NOT_FIND_SCAN_FILE = 12
 ERROR_NOT_FIND_MENU_DIR = 13
 CATEGORIES_OFFICE = 'Office;Viewer;Scanning;'
 
+# Main Categories:
+# Audio;Video;Development;Education;
+# Game;Graphics;Network;Office;Settings;Utility;
+
+# Additional categories:
+# Building;Debugger;IDE;GUIDesigner;Profiling;RevisionControl;Translation;Calendar;
+# ContactManagement;Database;Dictionary;Chart;Email;Finance;FlowChart;PDA;ProjectManagement;
+# Presentation;Spreadsheet;WordProcessor;2DGraphics;VectorGraphics;RasterGraphics;3DGraphics;
+# Scanning;OCR;Photography;Publishing;Viewer;TextTools;DesktopSettings;HardwareSettings;
+# Printing;PackageManager;Dialup;InstantMessaging;Chat;IRCClient;FileTransfer;HamRadio;
+# News;P2P;RemoteAccess;Telephony;TelephonyTools;VideoConference;WebBrowser;WebDevelopment;
+# Midi;Mixer;Sequencer;Tuner;TV;AudioVideoEditing;Player;Recorder;DiscBurning;ActionGame;
+# AdventureGame;ArcadeGame;BoardGame;BlocksGame;CardGame;KidsGame;LogicGame;RolePlaying;
+# Simulation;SportsGame;StrategyGame;Art;Construction;Music;Languages;Science;
+# ArtificialIntelligence;Astronomy;Biology;Chemistry;ComputerScience;DataVisualization;
+# Economy;Electricity;Geography;Geology;Geoscience;History;ImageProcessing;Literature;
+# Math;NumericalAnalysis;MedicalSoftware;Physics;Robotics;Sports;ParallelComputing;
+# Amusement;Archiving;Compression;Electronics;Emulator;Engineering;FileTools;FileManager;
+# TerminalEmulator;Filesystem;Monitor;Security;Accessibility;Calculator;Clock;TextEditor;
+# Documentation;Core;KDE;GNOME;GTK;Qt;Motif;Java;ConsoleOnly;
 
 def create_desktop_entry(name: str, file_name: Union[Path, str], icon: Union[Path, str] = None, comment: str = None,
                          desktop=True, menu=False, categories=None):
