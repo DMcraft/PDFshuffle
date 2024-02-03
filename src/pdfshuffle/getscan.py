@@ -113,9 +113,9 @@ class WorkerDrive(QtCore.QObject):
             return
 
         _, max_area = dev.area  # min_area, max_area
+        dev.source = param['source']
         dev.mode = param['mode']
         dev.resolution = param['dpi']
-        dev.source = param['source']
 
         try:
             for image in dev.multi_scan():

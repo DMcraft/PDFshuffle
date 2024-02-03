@@ -31,7 +31,7 @@ if not config.has_section('SCAN'):
 
 PAGE_BACKGROUND_COLOR = config['PAGE'].get('BACKGROUND_COLOR', fallback='white')
 PAGE_PAPER_DPI = _int_value(config['PAGE'].get('paperDPI', fallback='200'))
-PAGE_QUALITY = _int_value(config['PAGE'].get('QUALITY', fallback='90'))
+PAGE_QUALITY = _int_value(config['PAGE'].get('quality', fallback='90'))
 PAGE_PAPER_SIZE = config['PAGE'].get('papersize', fallback='A4')
 PAGE_PAPER_ORIENTATION = config['PAGE'].get('paperorientation', fallback='portret')
 try:
@@ -43,6 +43,7 @@ try:
 except ValueError:
     PAGE_IMAGE_EXTEND = True
 
+
 CURRENT_PATH = config['FILE'].get('current_path', fallback=os.path.expanduser('~'))
 SCAN_PATH = config['FILE'].get('scan_path', fallback=os.path.expanduser('~'))
 SCAN_FILE_NAME = config['FILE'].get('file_name', fallback='ScanShuffle')
@@ -53,6 +54,12 @@ SCAN_SOURCE = config['SCAN'].get('source', fallback='Flatbed')
 SCAN_MODE = config['SCAN'].get('mode', fallback='Color')
 SCAN_DPI = _int_value(config['SCAN'].get('dpi', fallback='200'))
 SCAN_AREA = config['SCAN'].get('area', fallback='Full')
+SCAN_QUALITY = _int_value(config['SCAN'].get('quality', fallback='90'))
+try:
+    SCAN_AUTOSAVE = config['SCAN'].getboolean('autosave', fallback=False)
+except ValueError:
+    SCAN_AUTOSAVE = False
+
 
 SCAN_SPLIT = tuple(map(_int_value, config['SCAN'].get('split', fallback='5,6, 7,8').split(',', 4)))
 
@@ -93,7 +100,7 @@ def save_config():
     config.set('PAGE', 'BACKGROUND_COLOR', PAGE_BACKGROUND_COLOR)
     # config.set('PAGE', 'LANDING', PAGE_LANDING)
     config.set('PAGE', 'paperDPI', str(PAGE_PAPER_DPI))
-    config.set('PAGE', 'QUALITY', str(PAGE_QUALITY))
+    config.set('PAGE', 'quality', str(PAGE_QUALITY))
     config.set('PAGE', 'papersize', PAGE_PAPER_SIZE)
     config.set('PAGE', 'paperorientation', PAGE_PAPER_ORIENTATION)
     config.set('PAGE', 'paperformatting', str(PAGE_PAPER_FORMATTING))
@@ -110,6 +117,8 @@ def save_config():
     config.set('SCAN', 'dpi', str(SCAN_DPI))
     config.set('SCAN', 'area', SCAN_AREA)
     config.set('SCAN', 'split', ','.join(map(str, SCAN_SPLIT)))
+    config.set('SCAN', 'autosave', str(SCAN_AUTOSAVE))
+    config.set('SCAN', 'quality', str(SCAN_QUALITY))
 
     with open(FILE_CFG, 'w') as configfile:
         config.write(configfile)

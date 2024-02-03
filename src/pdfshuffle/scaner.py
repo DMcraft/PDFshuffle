@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Created By  : Dmitriy Aldunin @DMcraft
 # Created Date: 07/01/2024
 # version ='1.0'
@@ -25,6 +25,8 @@ from scanerwindow import Ui_ScanerForm
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QWidget
 from PyQt5 import QtGui, QtCore
 
+SCANER_SAVE_FILE = False
+
 
 class ScanerWindow(QWidget):
     get_devices = QtCore.pyqtSignal()
@@ -35,10 +37,14 @@ class ScanerWindow(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.image_buf = None
         # Set up the UI
         self.ui = Ui_ScanerForm()
         self.ui.setupUi(self)
         self.setWindowTitle('Scaner Shuffle')
+
+        self.ui.groupBoxSave.setEnabled(config.SCAN_AUTOSAVE)
+        self.ui.checkBox_autosave.setChecked(config.SCAN_AUTOSAVE)
 
         self.ui.spinBox_left.setValue(config.SCAN_SPLIT[0])
         self.ui.spinBox_upper.setValue(config.SCAN_SPLIT[1])
@@ -52,21 +58,23 @@ class ScanerWindow(QWidget):
         self.ui.comboBox_area.addItem('A4-split', (2, 2, 212, 295))
         self.ui.comboBox_area.setCurrentIndex(self.ui.comboBox_area.findText(config.SCAN_AREA))
 
-        self.ui.comboBox_typefile.addItem('PDF', 'pdf')
         self.ui.comboBox_typefile.addItem('JPEG', 'jpg')
-        self.ui.comboBox_typefile.addItem('TIFF', 'tiff')
+        self.ui.comboBox_typefile.addItem('PDF', 'pdf')
         self.ui.comboBox_typefile.setCurrentIndex(0)
+
+        self.ui.spinBox_quality.setValue(config.SCAN_QUALITY)
 
         self.ui.lineEdit_path.setText(config.SCAN_PATH)
         self.ui.lineEdit_filename.setText(config.SCAN_FILE_NAME)
 
-        # self.ui.lineEdit_path.textEdited.connect(self.set_scan_path)
         self.ui.lineEdit_filename.textEdited.connect(self.set_scan_file_name)
 
         self.ui.toolButton_path.clicked.connect(self.pressedtoolButtonPath)
         self.ui.pushButton_scan.clicked.connect(self.pressedButtonScan)
         self.ui.pushButton_exit.clicked.connect(self.pressedButtonExit)
         self.ui.toolButton_devreload.clicked.connect(self.pressedtoolReloadDevices)
+        self.ui.checkBox_autosave.clicked.connect(self.pressed_check_autosave)
+        self.ui.pushButton_save.clicked.connect(self.save_image)
 
         # Создание потока
         # create thread
@@ -147,20 +155,36 @@ class ScanerWindow(QWidget):
         """Function set file name in config."""
         config.SCAN_FILE_NAME = text
 
+    def pressed_check_autosave(self, check):
+        if check:
+            self.ui.groupBoxSave.setEnabled(True)
+        else:
+            self.ui.groupBoxSave.setEnabled(False)
+
+    def save_image(self):
+        if self.image_buf is None:
+            self.setMessage('Нет изображения')
+        else:
+            path = Path(self.ui.lineEdit_path.text())
+            if path.is_dir():
+                file_name = ''.join((self.ui.lineEdit_filename.text(), '_',
+                                     datetime.datetime.today().strftime("%Y%m%d-%H%M%S"),
+                                     '.', self.ui.comboBox_typefile.currentData()))
+                path = Path.joinpath(path, file_name)
+                self.image_buf.save(path, quality=self.ui.spinBox_quality.value(),
+                                    dpi=(self.ui.comboBox_dpi.currentData(), self.ui.comboBox_dpi.currentData()))
+            else:
+                self.setMessage('Неверное имя каталога')
+
     @QtCore.pyqtSlot(object)
     def processing_scan(self, image):
         logger.info(f'processing image {type(image)}')
 
-        if __name__ == '__main__':
-            path = Path(self.ui.lineEdit_path.text())
-            if path.is_dir():
-                file_name = self.ui.lineEdit_filename.text() + datetime.datetime.today().strftime(
-                    "%Y%m%d-%H%M%S") + '.jpg'
-                path = Path.joinpath(path, file_name)
-                image.save(path, quality=90,
-                           dpi=(self.ui.comboBox_dpi.currentData(), self.ui.comboBox_dpi.currentData()))
-            else:
-                self.setMessage('Неверное имя каталога')
+        if SCANER_SAVE_FILE:
+            self.image_buf = image
+            self.ui.groupBoxSave.setEnabled(True)
+            if self.ui.checkBox_autosave.isChecked():
+                self.save_image()
         else:
             self.push_image_scan.emit(image)
 
@@ -228,6 +252,8 @@ class ScanerWindow(QWidget):
         config.SCAN_AREA = self.ui.comboBox_area.currentText()
         config.SCAN_SPLIT = (self.ui.spinBox_left.value(), self.ui.spinBox_upper.value(),
                              self.ui.spinBox_right.value(), self.ui.spinBox_lower.value())
+        config.SCAN_AUTOSAVE = self.ui.checkBox_autosave.isChecked()
+        config.SCAN_QUALITY = self.ui.spinBox_quality.value()
 
         config.save_config()
         self.thread.quit()
