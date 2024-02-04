@@ -4,6 +4,8 @@ import os
 from loguru import logger
 
 FILE_CFG = 'config.ini'
+BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
+                  '0': False, 'no': False, 'false': False, 'off': False}
 
 
 def _int_value(s: str) -> int:
@@ -12,6 +14,33 @@ def _int_value(s: str) -> int:
     except ValueError as v:
         logger.error(f'Value error {v}')
         return 0
+
+
+def _get_value(section: str, option: str, fallback):
+    value = None
+    if isinstance(fallback, (str, int, bool)):
+        try:
+            value = config[section].get(option.lower())
+            if value is None:
+                return fallback
+        except Exception as e:
+            logger.error(f'Error config "{e}"!')
+            return fallback
+
+    if isinstance(fallback, str):
+        return value
+    elif isinstance(fallback, bool):
+        if value.lower() not in BOOLEAN_STATES:
+            logger.error(f'Config value bool error {option}  "{value}"')
+            return fallback
+        else:
+            return BOOLEAN_STATES[value.lower()]
+    elif isinstance(fallback, int):
+        try:
+            return int(value)
+        except ValueError as v:
+            logger.error(f'Config value int error {option} "{v}"')
+            return fallback
 
 
 config = configparser.ConfigParser()
@@ -28,40 +57,56 @@ if not config.has_section('FILE'):
 if not config.has_section('SCAN'):
     config.add_section('SCAN')
 
+PAGE_BACKGROUND_COLOR = _get_value('PAGE', 'background_color', 'white')
+PAGE_PAPER_DPI = _get_value('PAGE', 'paper_dpi', 200)
+PAGE_QUALITY = _get_value('PAGE', 'quality', 90)
+PAGE_PAPER_SIZE = _get_value('PAGE', 'papersize', 'A4')
+PAGE_PAPER_ORIENTATION = _get_value('PAGE', 'paperorientation', 'portret')
+PAGE_PAPER_FORMATTING = _get_value('PAGE', 'paperformatting', True)
+PAGE_IMAGE_EXTEND = _get_value('PAGE', 'imageextend', True)
 
-PAGE_BACKGROUND_COLOR = config['PAGE'].get('BACKGROUND_COLOR', fallback='white')
-PAGE_PAPER_DPI = _int_value(config['PAGE'].get('paperDPI', fallback='200'))
-PAGE_QUALITY = _int_value(config['PAGE'].get('quality', fallback='90'))
-PAGE_PAPER_SIZE = config['PAGE'].get('papersize', fallback='A4')
-PAGE_PAPER_ORIENTATION = config['PAGE'].get('paperorientation', fallback='portret')
-try:
-    PAGE_PAPER_FORMATTING = config['PAGE'].getboolean('paperformatting', fallback=True)
-except ValueError:
-    PAGE_PAPER_FORMATTING = True
-try:
-    PAGE_IMAGE_EXTEND = config['PAGE'].getboolean('imageextend', fallback=True)
-except ValueError:
-    PAGE_IMAGE_EXTEND = True
+CURRENT_PATH = _get_value('FILE', 'current_path', os.path.expanduser('~'))
+SCAN_PATH = _get_value('FILE', 'scan_path', os.path.expanduser('~'))
+SCAN_FILE_NAME = _get_value('FILE', 'file_name', 'ScanShuffle')
 
+SCAN_DEVICE_NAME = _get_value('SCAN', 'dev', 'NONE')
+SCAN_DEVICE_SIGNATURE = _get_value('SCAN', 'dev_signature', 'NONE')
+SCAN_SOURCE = _get_value('SCAN', 'source', 'Flatbed')
+SCAN_MODE = _get_value('SCAN', 'mode', 'Color')
+SCAN_DPI = _get_value('SCAN', 'dpi', 200)
+SCAN_AREA = _get_value('SCAN', 'area', 'Full')
+SCAN_QUALITY = _get_value('SCAN', 'quality', 90)
+SCAN_AUTOSAVE = _get_value('SCAN', 'autosave', False)
 
-CURRENT_PATH = config['FILE'].get('current_path', fallback=os.path.expanduser('~'))
-SCAN_PATH = config['FILE'].get('scan_path', fallback=os.path.expanduser('~'))
-SCAN_FILE_NAME = config['FILE'].get('file_name', fallback='ScanShuffle')
-
-SCAN_DEVICE_NAME = config['SCAN'].get('dev', fallback='NONE')
-SCAN_DEVICE_SIGNATURE = config['SCAN'].get('dev_signature', fallback='NONE')
-SCAN_SOURCE = config['SCAN'].get('source', fallback='Flatbed')
-SCAN_MODE = config['SCAN'].get('mode', fallback='Color')
-SCAN_DPI = _int_value(config['SCAN'].get('dpi', fallback='200'))
-SCAN_AREA = config['SCAN'].get('area', fallback='Full')
-SCAN_QUALITY = _int_value(config['SCAN'].get('quality', fallback='90'))
-try:
-    SCAN_AUTOSAVE = config['SCAN'].getboolean('autosave', fallback=False)
-except ValueError:
-    SCAN_AUTOSAVE = False
+SCAN_SPLIT = tuple(map(_int_value, _get_value('SCAN', 'split', '0,0,0,0').split(',', 4)))
 
 
-SCAN_SPLIT = tuple(map(_int_value, config['SCAN'].get('split', fallback='5,6, 7,8').split(',', 4)))
+def save_config():
+    config.set('PAGE', 'background_color', PAGE_BACKGROUND_COLOR)
+    config.set('PAGE', 'paper_dpi', str(PAGE_PAPER_DPI))
+    config.set('PAGE', 'quality', str(PAGE_QUALITY))
+    config.set('PAGE', 'papersize', PAGE_PAPER_SIZE)
+    config.set('PAGE', 'paperorientation', PAGE_PAPER_ORIENTATION)
+    config.set('PAGE', 'paperformatting', str(PAGE_PAPER_FORMATTING))
+    config.set('PAGE', 'imageextend', str(PAGE_IMAGE_EXTEND))
+
+    config.set('FILE', 'current_path', CURRENT_PATH)
+    config.set('FILE', 'scan_path', SCAN_PATH)
+    config.set('FILE', 'file_name', SCAN_FILE_NAME)
+
+    config.set('SCAN', 'dev', SCAN_DEVICE_NAME)
+    config.set('SCAN', 'dev_signature', SCAN_DEVICE_SIGNATURE)
+    config.set('SCAN', 'source', SCAN_SOURCE)
+    config.set('SCAN', 'mode', SCAN_MODE)
+    config.set('SCAN', 'dpi', str(SCAN_DPI))
+    config.set('SCAN', 'area', SCAN_AREA)
+    config.set('SCAN', 'autosave', str(SCAN_AUTOSAVE))
+    config.set('SCAN', 'quality', str(SCAN_QUALITY))
+
+    config.set('SCAN', 'split', ','.join(map(str, SCAN_SPLIT)))
+
+    with open(FILE_CFG, 'w') as configfile:
+        config.write(configfile)
 
 
 def _landing_size(size, land=False):
@@ -93,32 +138,3 @@ def get_size_page():
 
     return _landing_size((int(page_size[0] * PAGE_PAPER_DPI), int(page_size[1] * PAGE_PAPER_DPI)),
                          PAGE_PAPER_ORIENTATION.lower() == 'landscape')
-
-
-def save_config():
-    # config.set('PAGE', 'FORMAT', PAGE_FORMAT)
-    config.set('PAGE', 'BACKGROUND_COLOR', PAGE_BACKGROUND_COLOR)
-    # config.set('PAGE', 'LANDING', PAGE_LANDING)
-    config.set('PAGE', 'paperDPI', str(PAGE_PAPER_DPI))
-    config.set('PAGE', 'quality', str(PAGE_QUALITY))
-    config.set('PAGE', 'papersize', PAGE_PAPER_SIZE)
-    config.set('PAGE', 'paperorientation', PAGE_PAPER_ORIENTATION)
-    config.set('PAGE', 'paperformatting', str(PAGE_PAPER_FORMATTING))
-    config.set('PAGE', 'imageextend', str(PAGE_IMAGE_EXTEND))
-
-    config.set('FILE', 'current_path', CURRENT_PATH)
-    config.set('FILE', 'scan_path', SCAN_PATH)
-    config.set('FILE', 'file_name', SCAN_FILE_NAME)
-
-    config.set('SCAN', 'dev', SCAN_DEVICE_NAME)
-    config.set('SCAN', 'dev_signature', SCAN_DEVICE_SIGNATURE)
-    config.set('SCAN', 'source', SCAN_SOURCE)
-    config.set('SCAN', 'mode', SCAN_MODE)
-    config.set('SCAN', 'dpi', str(SCAN_DPI))
-    config.set('SCAN', 'area', SCAN_AREA)
-    config.set('SCAN', 'split', ','.join(map(str, SCAN_SPLIT)))
-    config.set('SCAN', 'autosave', str(SCAN_AUTOSAVE))
-    config.set('SCAN', 'quality', str(SCAN_QUALITY))
-
-    with open(FILE_CFG, 'w') as configfile:
-        config.write(configfile)
