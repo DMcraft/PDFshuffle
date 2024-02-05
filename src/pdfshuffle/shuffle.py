@@ -227,7 +227,7 @@ class MyWindow(QMainWindow):
         shortcut.create_desktop_entry('PDF Shuffle', 'pdfshuffle.py', 'icons/pdfshuffle.png',
                                       'Пересортировка страниц pdf файлов, добавление изображений',
                                       categories=shortcut.CATEGORIES_OFFICE)
-        shortcut.create_desktop_entry('PDF Scaner', 'scaner.py', 'icons/pdfscaner.png',
+        shortcut.create_desktop_entry('PDF Scaner', 'pdfscaner.py', 'icons/pdfscaner.png',
                                       'Сканер изображений',
                                       categories=shortcut.CATEGORIES_OFFICE)
 
