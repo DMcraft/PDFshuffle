@@ -10,7 +10,7 @@
 """ Вспомогательная программа сканирования изображений.
 
 """
-
+import os
 import sys
 import datetime
 import config
@@ -73,6 +73,7 @@ class ScanerWindow(QWidget):
         self.ui.pushButton_scan.clicked.connect(self.pressedButtonScan)
         self.ui.pushButton_exit.clicked.connect(self.pressedButtonExit)
         self.ui.toolButton_devreload.clicked.connect(self.pressedtoolReloadDevices)
+        self.ui.toolButtonOpenDir.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineEdit_path.text()}"'))
         self.ui.checkBox_autosave.clicked.connect(self.pressed_check_autosave)
         self.ui.pushButton_save.clicked.connect(self.save_image)
 
