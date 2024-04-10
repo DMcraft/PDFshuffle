@@ -2,12 +2,14 @@
 # ----------------------------------------------------------------------------
 # Created By  : Dmitriy Aldunin @DMcraft
 # Created Date: 07/01/2024
-# version ='1.0'
+# version ='1.1'
 # Copyright 2024 Dmitriy Aldunin
 # Licensed under the Apache License, Version 2.0
 # ---------------------------------------------------------------------------
 
 """ Вспомогательная программа сканирования изображений.
+
+$ pyuic5 scanerwindow.ui -o scanerwindow.py
 
 """
 import os
@@ -32,7 +34,7 @@ class ScanerWindow(QWidget):
     get_devices = QtCore.pyqtSignal()
     get_options = QtCore.pyqtSignal(str)
     start_scan = QtCore.pyqtSignal(dict)
-    push_image_scan = QtCore.pyqtSignal(object)
+    push_image_scan = QtCore.pyqtSignal(object, int)
     close_window = QtCore.pyqtSignal()
 
     def __init__(self):
@@ -180,6 +182,7 @@ class ScanerWindow(QWidget):
     @QtCore.pyqtSlot(object)
     def processing_scan(self, image):
         logger.info(f'processing image {type(image)}')
+        # TODO : crup image
 
         if SCANER_SAVE_FILE:
             self.image_buf = image
@@ -187,7 +190,7 @@ class ScanerWindow(QWidget):
             if self.ui.checkBox_autosave.isChecked():
                 self.save_image()
         else:
-            self.push_image_scan.emit(image)
+            self.push_image_scan.emit(image, self.ui.comboBox_dpi.currentData())
 
     def deviceChanged(self, index):
         logger.info('Device changed')
@@ -207,9 +210,10 @@ class ScanerWindow(QWidget):
         self.ui.lineEdit_message.setText(string)
 
     def pressedtoolButtonPath(self):
-        dirname = QFileDialog.getExistingDirectory(None, 'Выбор пути для сканированных фалов', config.SCAN_PATH)
-        self.ui.lineEdit_path.setText(dirname)
-        config.SCAN_PATH = dirname
+        dirname = QFileDialog.getExistingDirectory(None, 'Выбор пути для сканированных файлов', config.SCAN_PATH)
+        if len(dirname) > 0:
+            self.ui.lineEdit_path.setText(dirname)
+            config.SCAN_PATH = dirname
 
     def pressedtoolReloadDevices(self):
         if self.sane_thread.isReady():

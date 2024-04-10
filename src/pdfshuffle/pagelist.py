@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QSt
 PRoleID = Qt.UserRole + 33
 PRoleRotate = Qt.UserRole + 34
 PRoleViewer = Qt.UserRole + 35
+PRoleComment = Qt.UserRole + 36
 
 
 class PageDelegate(QStyledItemDelegate):
@@ -60,7 +61,7 @@ class PageWidget(QListWidget):
         self.setDragDropMode(QAbstractItemView.InternalMove)
         self.setItemDelegate(PageDelegate())
 
-    def addPage(self, key: int, text='', pix=None):
+    def addPage(self, key: int, text='', pix=None, comment: str = ''):
         item = QListWidgetItem()
         item.setData(PRoleID, key)
         item.setData(PRoleRotate, 0)
@@ -68,6 +69,7 @@ class PageWidget(QListWidget):
             pix_ico = pix.scaled(360, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             item.setData(PRoleViewer, pix)
             item.setData(Qt.DecorationRole, pix_ico)
+        item.setData(PRoleComment, comment)
         item.setText(text)
         self.addItem(item)
 
@@ -136,7 +138,11 @@ class PageWidget(QListWidget):
     def getTextSelected(self):
         t_names = []
         for item in self.selectedItems():
-            t_names.append(item.text())
+            if len(item.data(PRoleComment)) > 0:
+                t_names.append(f'{item.text()} > {item.data(PRoleComment)}')
+            else:
+                t_names.append(item.text())
+
         return ' - '.join(t_names)
 
     def connectAddFile(self, func):

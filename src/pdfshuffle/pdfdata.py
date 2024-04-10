@@ -1,4 +1,5 @@
 import io
+from loguru import logger
 
 from PyQt5.QtGui import QImage, QPixmap
 from pdf2image import convert_from_path
@@ -9,10 +10,11 @@ import config
 
 
 class PDFPage:
-    def __init__(self, name_page: str = '', pix=None, pdf=None):
+    def __init__(self, name_page: str = '', pix=None, pdf=None, comment: str = ''):
         self.name_page = name_page
         self.pix = pix
         self.pdf: PageObject = pdf
+        self.comment = comment
 
 
 class PDFData:
@@ -54,10 +56,15 @@ class PDFData:
                 image_pdf = self.resize_image(img, page_size[0], page_size[1]).convert("RGB")
             else:
                 image_pdf = img
-            canvas_image.paste(image_pdf, box=((page_size[0] - image_pdf.size[0]) // 2, (page_size[1] - image_pdf.size[1]) // 2))
+            canvas_image.paste(image_pdf,
+                               box=((page_size[0] - image_pdf.size[0]) // 2, (page_size[1] - image_pdf.size[1]) // 2))
         else:
             canvas_image = img
-        canvas_image.save(img_byte_arr, format='PDF', quality=config.PAGE_PAPER_DPI)
+
+        logger.info(f'PAGE_QUALITY {config.PAGE_QUALITY}, PAGE_PAPER_DPI {config.PAGE_PAPER_DPI}')
+
+        canvas_image.save(img_byte_arr, format='PDF', quality=config.PAGE_QUALITY,
+                          dpi=(config.PAGE_PAPER_DPI, config.PAGE_PAPER_DPI))
         pdf = PdfReader(img_byte_arr)
         self.pdf_read.append(pdf)
 
@@ -65,9 +72,11 @@ class PDFData:
         data = img.tobytes("raw", "RGB")
         qi = QImage(data, img.size[0], img.size[1], img.size[0] * 3, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(qi)
-        self._addpage(PDFPage(f'{len(self.pdf_read)}| Image', pixmap, pdf.pages[0]))
+        self._addpage(PDFPage(f'{len(self.pdf_read)}| Image',
+                              pixmap, pdf.pages[0],
+                              f'Размер: {img_byte_arr.getbuffer().nbytes // 1024} кб'
+                              ))
         return len(self.data)
-
 
     def resize_image(self, image, width, height):
         aspect_ratio = min(width / float(image.size[0]), height / float(image.size[1]))
