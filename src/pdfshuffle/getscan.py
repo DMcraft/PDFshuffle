@@ -112,20 +112,13 @@ class WorkerDrive(QtCore.QObject):
             self.message_signal.emit('Error open device...', err)
             return
 
-        _, max_area = dev.area  # min_area, max_area
         dev.source = param['source']
         dev.mode = param['mode']
         dev.resolution = param['dpi']
 
         try:
             for image in dev.multi_scan():
-                # processing image and save
-                dpm = image.height / max_area[1]
-                crop_image = image.crop((int(param['cr_left'] * dpm + param['ar_left'] * dpm),
-                                         int(param['cr_upper'] * dpm + param['ar_upper'] * dpm),
-                                         int(min(image.width, param['ar_right'] * dpm) - param['cr_right'] * dpm),
-                                         int(min(image.height, param['ar_lower'] * dpm) - param['cr_lower'] * dpm)))
-                self.file_scan_signal.emit(crop_image)
+                self.file_scan_signal.emit(image)
                 if dev.source.lower() == 'flatbed':
                     dev.cancel()
                     break

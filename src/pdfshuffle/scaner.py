@@ -183,14 +183,28 @@ class ScanerWindow(QWidget):
     def processing_scan(self, image):
         logger.info(f'processing image {type(image)}')
         # TODO : crup image
+        #
+        # 'cr_left': self.ui.spinBox_left.value(),
+        # 'cr_upper': self.ui.spinBox_upper.value(),
+        # 'cr_right': self.ui.spinBox_right.value(),
+        # 'cr_lower': self.ui.spinBox_lower.value(),
+        # 'ar_left': area[0], 'ar_upper': area[1], 'ar_right': area[2], 'ar_lower': area[3],
+
+        # processing image and save
+        area = self.ui.comboBox_area.currentData()
+        dpm = self.ui.comboBox_dpi.currentData() / 25.4
+        crop_image = image.crop((int(area[0] * dpm + self.ui.spinBox_left.value() * dpm),
+                                 int(area[1] * dpm + self.ui.spinBox_upper.value() * dpm),
+                                 int(min(image.width, area[2] * dpm) - self.ui.spinBox_right.value() * dpm),
+                                 int(min(image.height, area[3] * dpm) - self.ui.spinBox_lower.value() * dpm)))
 
         if SCANER_SAVE_FILE:
-            self.image_buf = image
+            self.image_buf = crop_image
             self.ui.groupBoxSave.setEnabled(True)
             if self.ui.checkBox_autosave.isChecked():
                 self.save_image()
         else:
-            self.push_image_scan.emit(image, self.ui.comboBox_dpi.currentData())
+            self.push_image_scan.emit(crop_image, self.ui.comboBox_dpi.currentData())
 
     def deviceChanged(self, index):
         logger.info('Device changed')
@@ -227,18 +241,11 @@ class ScanerWindow(QWidget):
         logger.info(f'{self.ui.comboBox_device.currentData()}')
 
         if self.sane_thread.isReady():
-            area = self.ui.comboBox_area.currentData()
             self.start_scan.emit({
                 'device': self.ui.comboBox_device.currentData(),
                 'mode': self.ui.comboBox_mode.currentData(),
                 'dpi': self.ui.comboBox_dpi.currentData(),
                 'source': self.ui.comboBox_source.currentData(),
-                'cr_left': self.ui.spinBox_left.value(),
-                'cr_upper': self.ui.spinBox_upper.value(),
-                'cr_right': self.ui.spinBox_right.value(),
-                'cr_lower': self.ui.spinBox_lower.value(),
-                'ar_left': area[0], 'ar_upper': area[1], 'ar_right': area[2], 'ar_lower': area[3],
-
             })
         else:
             self.setMessage('Процесс занят выполнением задачи...')
