@@ -169,16 +169,19 @@ class ScanerWindow(QWidget):
         if self.image_buf is None:
             self.setMessage('Нет изображения')
         else:
-            path = Path(self.ui.lineEdit_path.text())
-            if path.is_dir():
-                file_name = ''.join((self.ui.lineEdit_filename.text(), '_',
-                                     datetime.datetime.today().strftime("%Y%m%d-%H%M%S"),
-                                     '.', self.ui.comboBox_typefile.currentData()))
-                path = Path.joinpath(path, file_name)
-                self.image_buf.save(path, quality=self.ui.spinBox_quality.value(),
-                                    dpi=(self.ui.comboBox_dpi.currentData(), self.ui.comboBox_dpi.currentData()))
+            if SCANER_START_MAIN:
+                path = Path(self.ui.lineEdit_path.text())
+                if path.is_dir():
+                    file_name = ''.join((self.ui.lineEdit_filename.text(), '_',
+                                         datetime.datetime.today().strftime("%Y%m%d-%H%M%S"),
+                                         '.', self.ui.comboBox_typefile.currentData()))
+                    path = Path.joinpath(path, file_name)
+                    self.image_buf.save(path, quality=self.ui.spinBox_quality.value(),
+                                        dpi=(self.ui.comboBox_dpi.currentData(), self.ui.comboBox_dpi.currentData()))
+                else:
+                    self.setMessage('Неверное имя каталога')
             else:
-                self.setMessage('Неверное имя каталога')
+                self.push_image_scan.emit(self.image_buf, self.ui.comboBox_dpi.currentData())
 
     @QtCore.pyqtSlot(object)
     def processing_scan(self, image):
@@ -199,8 +202,8 @@ class ScanerWindow(QWidget):
                                  int(min(image.width, area[2] * dpm) - self.ui.spinBox_right.value() * dpm),
                                  int(min(image.height, area[3] * dpm) - self.ui.spinBox_lower.value() * dpm)))
 
+        self.image_buf = crop_image
         if SCANER_START_MAIN:
-            self.image_buf = crop_image
             self.ui.groupBoxSave.setEnabled(True)
             if self.ui.checkBox_autosave.isChecked():
                 self.save_image()
