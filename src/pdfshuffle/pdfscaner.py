@@ -21,5 +21,5 @@ if __name__ == '__main__':
     if environ.get('PRODUCTION') is None:
         logger.remove(handler_id=None)
         logger.add("runtime.log", rotation="10 MB")
-    scaner.SCANER_SAVE_FILE = True
+    scaner.SCANER_START_MAIN = True
     scaner.main()

@@ -27,7 +27,7 @@ from scanerwindow import Ui_ScanerForm
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QWidget
 from PyQt5 import QtGui, QtCore
 
-SCANER_SAVE_FILE = False
+SCANER_START_MAIN = False
 
 
 class ScanerWindow(QWidget):
@@ -45,7 +45,7 @@ class ScanerWindow(QWidget):
         self.ui.setupUi(self)
         self.setWindowTitle('Scaner Shuffle')
 
-        self.ui.groupBoxSave.setEnabled(config.SCAN_AUTOSAVE)
+        self.ui.groupBoxSave.setEnabled(config.SCAN_AUTOSAVE if SCANER_START_MAIN else False)
         self.ui.checkBox_autosave.setChecked(config.SCAN_AUTOSAVE)
 
         self.ui.spinBox_left.setValue(config.SCAN_SPLIT[0])
@@ -159,10 +159,11 @@ class ScanerWindow(QWidget):
         config.SCAN_FILE_NAME = text
 
     def pressed_check_autosave(self, check):
-        if check:
-            self.ui.groupBoxSave.setEnabled(True)
-        else:
-            self.ui.groupBoxSave.setEnabled(False)
+        if SCANER_START_MAIN:
+            if check:
+                self.ui.groupBoxSave.setEnabled(True)
+            else:
+                self.ui.groupBoxSave.setEnabled(False)
 
     def save_image(self):
         if self.image_buf is None:
@@ -198,7 +199,7 @@ class ScanerWindow(QWidget):
                                  int(min(image.width, area[2] * dpm) - self.ui.spinBox_right.value() * dpm),
                                  int(min(image.height, area[3] * dpm) - self.ui.spinBox_lower.value() * dpm)))
 
-        if SCANER_SAVE_FILE:
+        if SCANER_START_MAIN:
             self.image_buf = crop_image
             self.ui.groupBoxSave.setEnabled(True)
             if self.ui.checkBox_autosave.isChecked():
