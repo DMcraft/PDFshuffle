@@ -18,7 +18,6 @@ import datetime
 import config
 
 from loguru import logger
-from os import environ
 
 from pathlib import Path
 
@@ -186,15 +185,7 @@ class ScanerWindow(QWidget):
     @QtCore.pyqtSlot(object)
     def processing_scan(self, image):
         logger.info(f'processing image {type(image)}')
-        # TODO : crup image
-        #
-        # 'cr_left': self.ui.spinBox_left.value(),
-        # 'cr_upper': self.ui.spinBox_upper.value(),
-        # 'cr_right': self.ui.spinBox_right.value(),
-        # 'cr_lower': self.ui.spinBox_lower.value(),
-        # 'ar_left': area[0], 'ar_upper': area[1], 'ar_right': area[2], 'ar_lower': area[3],
 
-        # processing image and save
         area = self.ui.comboBox_area.currentData()
         dpm = self.ui.comboBox_dpi.currentData() / 25.4
         crop_image = image.crop((int(area[0] * dpm + self.ui.spinBox_left.value() * dpm),

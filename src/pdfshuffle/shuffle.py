@@ -212,11 +212,11 @@ class MyWindow(QMainWindow):
 
     def winAbout(self):
         QMessageBox.about(self, "О программе PDF shuffler",
-                          "PDF shuffler - программа для пересортировки  страниц PDF файлов.\n\n"
-                          "version 2.2\n"
+                          "PDF shuffler - программа для пересортировки страниц PDF файлов.\n\n"
+                          f"version {config.VERSION_PROGRAM}\n"
                           "Автор: Алдунин Д.А.\n"
                           "Date production: 2023\n"
-                          "Powered by open source software: pdf2image, PyPDF2, PyQt5\n")
+                          "Powered by open source software: pdf2image, PyPDF2, PyQt5, python-sane\n")
 
     def winScaner(self):
         if self.wScan is None:

@@ -3,6 +3,8 @@ import os
 
 from loguru import logger
 
+VERSION_PROGRAM = '2.3.1'
+
 FILE_CFG = 'config.ini'
 BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
                   '0': False, 'no': False, 'false': False, 'off': False}
