@@ -138,6 +138,7 @@ class MyWindow(QMainWindow):
     def pressedButtonRotate(self, pages: PageWidget):
         for i in pages.rotatePage(90):
             pdf.rotatepage(i, 90)
+        self.clickViewPage(pages)
 
     def pressedButtonExchange(self):
         self.pagesBasic.clicked.disconnect()

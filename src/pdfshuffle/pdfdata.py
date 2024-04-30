@@ -1,7 +1,7 @@
 import io
 from loguru import logger
 
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QImage, QPixmap, QTransform
 from pdf2image import convert_from_path
 from PyPDF2 import PdfReader, PdfWriter, PageObject
 from PIL import Image
@@ -27,6 +27,8 @@ class PDFData:
 
     def rotatepage(self, page, rotate):
         self.data[page].pdf.rotate(rotate)
+        trans_rotate = QTransform().rotate(rotate)
+        self.data[page].pix = QPixmap(self.data[page].pix).transformed(trans_rotate)
 
     def add_pdf_file(self, filename):
         start_page = len(self.data)

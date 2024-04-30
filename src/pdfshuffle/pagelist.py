@@ -5,7 +5,7 @@ from PyQt5.QtGui import QKeySequence, QDragEnterEvent, QBrush, QColor, QFont, QP
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QStyledItemDelegate, QStyle
 
 PRoleID = Qt.UserRole + 33
-PRoleRotate = Qt.UserRole + 34
+#PRoleRotate = Qt.UserRole + 34
 PRoleViewer = Qt.UserRole + 35
 PRoleComment = Qt.UserRole + 36
 
@@ -14,19 +14,21 @@ class PageDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         img: QPixmap = index.model().data(index, Qt.DecorationRole)
         x0, y0, x1, y1 = option.rect.getRect()
-        if index.model().data(index, PRoleRotate) > 0:
-            img = img.transformed(QTransform().rotate(index.model().data(index, PRoleRotate)))
 
         if option.state & QStyle.State_Selected:
-            painter.setBrush(QBrush(Qt.cyan))
+            painter.setBrush(QColor(155, 193, 219))
             painter.drawRect(QtCore.QRect(x0 + 5, y0 + 5, x1 - 10, y1 - 10))
-            if index.model().data(index, PRoleRotate) in (90, 270):
+            if img.width() > img.height():
                 img = img.scaledToWidth(70)
             else:
                 img = img.scaledToHeight(70)
             w, h = img.width(), img.height()
             painter.drawPixmap(QtCore.QRect(x0 + (x1 - w) // 2, y0 + (y1 - h) // 2 - 15, w, h), img)
         else:
+            if img.width() > img.height():
+                img = img.scaledToWidth(80)
+            else:
+                img = img.scaledToHeight(80)
             w, h = img.width(), img.height()
             painter.drawPixmap(QtCore.QRect(x0 + (x1 - w) // 2, y0 + (y1 - h) // 2 - 15, w, h), img)
 
@@ -41,10 +43,11 @@ class PageDelegate(QStyledItemDelegate):
         painter.drawText(QtCore.QRect(x0 + 10, y0 + y1 - 40, x1 - 20, 20), Qt.AlignLeft, txt2)
 
     def sizeHint(self, option, index: QtCore.QModelIndex) -> QtCore.QSize:
-        if index.model().data(index, PRoleRotate) in (90, 270):
-            return QSize(100, index.model().data(index, Qt.DecorationRole).width() + 40)
+        img: QPixmap = index.model().data(index, Qt.DecorationRole)
+        if img.width() > img.height():
+            return QSize(100, img.height() + 40)
         else:
-            return QSize(index.model().data(index, Qt.DecorationRole).width() + 20, 120)
+            return QSize(img.width() + 20, 120)
 
 
 class PageWidget(QListWidget):
@@ -64,7 +67,6 @@ class PageWidget(QListWidget):
     def addPage(self, key: int, text='', pix=None, comment: str = ''):
         item = QListWidgetItem()
         item.setData(PRoleID, key)
-        item.setData(PRoleRotate, 0)
         if pix is not None:
             pix_ico = pix.scaled(360, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             item.setData(PRoleViewer, pix)
@@ -126,8 +128,10 @@ class PageWidget(QListWidget):
             angle = 360 - angle
         if angle in (0, 90, 180, 270):
             for item in self.selectedItems():
-                rot = (item.data(PRoleRotate) + angle) % 360
-                item.setData(PRoleRotate, rot)
+                trans_rotate = QTransform().rotate(angle)
+                item.setData(PRoleViewer, QPixmap(item.data(PRoleViewer).transformed(trans_rotate)))
+                item.setData(Qt.DecorationRole, QPixmap(item.data(Qt.DecorationRole).transformed(trans_rotate)))
+
                 yield item.data(PRoleID)
         else:
             raise ValueError('Rotate page may be angle 0, 90, 180, 270')
