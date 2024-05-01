@@ -1,9 +1,12 @@
 import os
 import sys
+
+from PyQt5.QtGui import QPixmap
+
 import config
 from loguru import logger
 
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
 
 from pagelist import PageWidget, PRoleID
 from pdfdata import PDFData
@@ -14,7 +17,7 @@ from PyQt5 import QtGui, QtCore
 import shortcut
 
 
-# pyuic5 window.ui -o window.py
+# pyuic5 window.ui -o ./src/pdfshuffle/window.py
 
 
 class MyWindow(QMainWindow):
@@ -22,7 +25,10 @@ class MyWindow(QMainWindow):
         super().__init__()
 
         self.wScan = None  # объект окна сканера
+        self.status_viewer = 0
         self.pathfile = config.CURRENT_PATH
+        self.current_pages_view: PageWidget = None
+        self.scale_size = config.SCALE_SIZE
 
         # Set up the UI
         self.ui = Ui_MainWindow()
@@ -35,6 +41,9 @@ class MyWindow(QMainWindow):
         self.ui.comboBoxOrientation.setCurrentIndex(
             0 if self.ui.comboBoxOrientation.findText(config.PAGE_PAPER_ORIENTATION) < 0 else
             self.ui.comboBoxOrientation.findText(config.PAGE_PAPER_ORIENTATION))
+
+        self.ui.lineviewpath.setText(self.pathfile)
+        self.ui.toolButtonPath.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineviewpath.text()}"'))
 
         self.ui.comboBoxPaperDPI.addItem('75 dpi', 75)
         self.ui.comboBoxPaperDPI.addItem('100 dpi', 100)
@@ -82,9 +91,10 @@ class MyWindow(QMainWindow):
         self.ui.toolButtonSecondClear.clicked.connect(lambda: self.pagesSecond.clear())
 
         self.ui.toolButtonRestore.clicked.connect(self.pressedButtonRestored)
+        self.ui.toolButtonViewerVisible.clicked.connect(self.pressedButtonViewer)
 
-        self.ui.toolButtonViewerVisible.clicked.connect(
-            lambda: self.ui.labelView.setVisible(False if self.ui.labelView.isVisible() else True))
+        self.ui.toolButtonScalePlus.clicked.connect(self.pressed_scale_plus)
+        self.ui.toolButtonScaleMinus.clicked.connect(self.pressed_scale_minus)
         # Menu
         self.ui.actionAddBasic.triggered.connect(lambda: self.pressedButtonAdd(self.pagesBasic))
         self.ui.actionClearBasic.triggered.connect(lambda: self.pagesBasic.clear())
@@ -102,16 +112,55 @@ class MyWindow(QMainWindow):
         self.pagesBasic.clicked.connect(lambda: self.clickViewPage(self.pagesBasic))
         self.pagesSecond.clicked.connect(lambda: self.clickViewPage(self.pagesSecond))
 
+    def pressed_scale_plus(self):
+        self.scale_size *= 2
+        if self.scale_size > config.SCALE_SIZE * 16:
+            self.scale_size = config.SCALE_SIZE * 16
+        self.ui.lineEditScale.setText(f'{self.scale_size / config.SCALE_SIZE}x')
+        if self.current_pages_view is not None:
+            self.clickViewPage(self.current_pages_view)
+
+    def pressed_scale_minus(self):
+        self.scale_size //= 2
+        if self.scale_size < config.SCALE_SIZE // 4:
+            self.scale_size = config.SCALE_SIZE // 4
+        self.ui.lineEditScale.setText(f'{self.scale_size / config.SCALE_SIZE}x')
+        if self.current_pages_view is not None:
+            self.clickViewPage(self.current_pages_view)
+
     def clickViewPage(self, pages: PageWidget):
         logger.info(pages)
-        pix = pages.getPixmapSelected()
-        self.ui.labelView.setPixmap(pix)
+        self.current_pages_view = pages
+
+        pix: QPixmap = pages.getPixmapSelected()
+        if pix.height() < self.scale_size:
+            pix = pdf.reload_image(pages.getIDSelected(), self.scale_size)
+            pages.setPixmapSelected(pix)
+
+        pix_scaled: QPixmap = pix.scaledToHeight(self.scale_size, Qt.SmoothTransformation)
+        self.ui.labelView.setPixmap(pix_scaled)
+        self.ui.labelView.setFixedSize(pix_scaled.width(), pix_scaled.height())
+        self.ui.scrollAreaWidgetContents.setMinimumSize(pix_scaled.width(), pix_scaled.height())
         self.updatePages()
         self.ui.statusbar.showMessage(pages.getTextSelected())
 
     def updatePages(self):
         self.pagesBasic.setGridSize(QSize())
         self.pagesSecond.setGridSize(QSize())
+
+    def pressedButtonViewer(self):
+        self.status_viewer += 1
+        if self.status_viewer > 2:
+            self.status_viewer = 0
+        if self.status_viewer == 0:
+            self.ui.scrollArea.setMaximumWidth(500)
+            self.ui.scrollArea.setMinimumWidth(500)
+        elif self.status_viewer == 1:
+            self.ui.scrollArea.setMaximumWidth(1800)
+            self.ui.scrollArea.setMinimumWidth(1400)
+        else:
+            self.ui.scrollArea.setMaximumWidth(250)
+            self.ui.scrollArea.setMinimumWidth(0)
 
     def pressedButtonRestored(self):
         self.pagesBasic.clear()
@@ -121,7 +170,7 @@ class MyWindow(QMainWindow):
 
     def pressedButtonSave(self, pages: PageWidget):
         filename, _ = QFileDialog.getSaveFileName(None, "Save File", self.pathfile,
-                                                        "PDF Files (*.pdf)")
+                                                  "PDF Files (*.pdf)")
         if filename:
             self.pathfile = os.path.dirname(filename)
             if not filename.lower().endswith('.pdf'):
@@ -134,6 +183,7 @@ class MyWindow(QMainWindow):
             pdf.save_as(filename, pgs)
         else:
             self.ui.statusbar.showMessage('Отмена сохранения. Файл не выбран.', 3000)
+        self.ui.lineviewpath.setText(self.pathfile)
 
     def pressedButtonRotate(self, pages: PageWidget):
         for i in pages.rotatePage(90):
@@ -158,8 +208,8 @@ class MyWindow(QMainWindow):
     def pressedButtonAdd(self, pages: PageWidget, filename: str = None):
         if filename is None:
             filename, _ = QFileDialog.getOpenFileName(None, "Open File", self.pathfile,
-                                                            "PDF Files (*.pdf);;"
-                                                            "Image Files (*.jpg *.jpeg *.png)")
+                                                      "PDF Files (*.pdf);;"
+                                                      "Image Files (*.jpg *.jpeg *.png)")
         if filename:
 
             if filename.lower().endswith('.pdf'):
@@ -174,6 +224,7 @@ class MyWindow(QMainWindow):
                 num_page = pdf.add_image_file(filename) - 1
                 pid = pdf.data[num_page]
                 pages.addPage(num_page, pid.name_page, pid.pix, pid.comment)
+        self.ui.lineviewpath.setText(self.pathfile)
 
     def changePaperSize(self, index):
         config.PAGE_PAPER_SIZE = self.ui.comboBoxSizePaper.currentText()

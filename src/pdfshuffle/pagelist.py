@@ -1,11 +1,11 @@
 from loguru import logger
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QKeySequence, QDragEnterEvent, QBrush, QColor, QFont, QPixmap, QTransform, QDragLeaveEvent
+from PyQt5.QtGui import QKeySequence, QDragEnterEvent, QColor, QFont, QPixmap, QTransform, QDragLeaveEvent
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QStyledItemDelegate, QStyle
 
 PRoleID = Qt.UserRole + 33
-#PRoleRotate = Qt.UserRole + 34
+# PRoleRotate = Qt.UserRole + 34
 PRoleViewer = Qt.UserRole + 35
 PRoleComment = Qt.UserRole + 36
 
@@ -138,6 +138,12 @@ class PageWidget(QListWidget):
 
     def getPixmapSelected(self):
         return self.currentItem().data(PRoleViewer)
+
+    def setPixmapSelected(self, pix):
+        self.currentItem().setData(PRoleViewer, pix)
+
+    def getIDSelected(self):
+        return self.currentItem().data(PRoleID)
 
     def getTextSelected(self):
         t_names = []

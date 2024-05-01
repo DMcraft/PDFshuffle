@@ -3,12 +3,14 @@ import os
 
 from loguru import logger
 
-VERSION_PROGRAM = '2.3.2'
+VERSION_PROGRAM = '2.4.0'
+VERSION_DATE = '01/05/2024'
 
 FILE_CFG = 'config.ini'
 BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
                   '0': False, 'no': False, 'false': False, 'off': False}
 
+SCALE_SIZE = 480
 
 def _int_value(s: str) -> int:
     try:
@@ -49,8 +51,8 @@ config = configparser.ConfigParser()
 config.read(FILE_CFG)
 
 config['DEFAULT'] = {'program': 'PDFshuffle'}
-config['VERSION'] = {'version': '2.5',
-                     'date': '02.02.2024'}
+config['VERSION'] = {'version': f'{VERSION_PROGRAM}',
+                     'date': f'{VERSION_DATE}'}
 
 if not config.has_section('PAGE'):
     config.add_section('PAGE')

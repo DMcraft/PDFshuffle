@@ -2,7 +2,7 @@ import io
 from loguru import logger
 
 from PyQt5.QtGui import QImage, QPixmap, QTransform
-from pdf2image import convert_from_path
+from pdf2image import convert_from_path, convert_from_bytes
 from PyPDF2 import PdfReader, PdfWriter, PageObject
 from PIL import Image
 
@@ -32,7 +32,7 @@ class PDFData:
 
     def add_pdf_file(self, filename):
         start_page = len(self.data)
-        images = convert_from_path(filename, size=(None, 600))
+        images = convert_from_path(filename, size=(None, config.SCALE_SIZE))
 
         pdf = PdfReader(filename)
         self.pdf_read.append(pdf)
@@ -70,7 +70,7 @@ class PDFData:
         pdf = PdfReader(img_byte_arr)
         self.pdf_read.append(pdf)
 
-        img = self.resize_image(canvas_image, 600, 600).convert("RGB")
+        img = self.resize_image(canvas_image, config.SCALE_SIZE, config.SCALE_SIZE).convert("RGB")
         data = img.tobytes("raw", "RGB")
         qi = QImage(data, img.size[0], img.size[1], img.size[0] * 3, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(qi)
@@ -85,6 +85,21 @@ class PDFData:
         new_width = int(aspect_ratio * image.size[0])
         new_height = int(aspect_ratio * image.size[1])
         return image.resize((new_width, new_height), resample=Image.Resampling.BILINEAR)
+
+    def reload_image(self, id_page: int, size: int = config.SCALE_SIZE * 4):
+        byte_arr = io.BytesIO()
+        output = PdfWriter()
+        output.add_page(self.data[id_page].pdf)
+        output.write(byte_arr)
+
+        image = convert_from_bytes(byte_arr.getvalue(), size=(None, size))
+        im = image[0].convert("RGB")
+        data = im.tobytes("raw", "RGB")
+        qi = QImage(data, im.size[0], im.size[1], im.size[0] * 3, QImage.Format.Format_RGB888)
+        pixmap = QPixmap.fromImage(qi)
+
+        self.data[id_page].pix = pixmap
+        return pixmap
 
     def save_as(self, filename, pgs):
         output = PdfWriter()
