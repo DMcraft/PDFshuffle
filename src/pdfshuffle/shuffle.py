@@ -91,7 +91,10 @@ class MyWindow(QMainWindow):
         self.ui.toolButtonSecondClear.clicked.connect(lambda: self.pagesSecond.clear())
 
         self.ui.toolButtonRestore.clicked.connect(self.pressedButtonRestored)
-        self.ui.toolButtonViewerVisible.clicked.connect(self.pressedButtonViewer)
+
+        self.ui.toolButtonViewerVisible.clicked.connect(lambda: self.pressedButtonViewer(0))
+        self.ui.toolButtonViewerVisible_1.clicked.connect(lambda: self.pressedButtonViewer(1))
+        self.ui.toolButtonViewerVisible_2.clicked.connect(lambda: self.pressedButtonViewer(2))
 
         self.ui.toolButtonScalePlus.clicked.connect(self.pressed_scale_plus)
         self.ui.toolButtonScaleMinus.clicked.connect(self.pressed_scale_minus)
@@ -106,6 +109,10 @@ class MyWindow(QMainWindow):
         self.ui.actionShortcutDesktop.triggered.connect(self.pressed_action_shortcut_desktop)
         self.ui.actionShortcutMenu.triggered.connect(self.pressed_action_shortcut_menu)
         self.ui.actionScan.triggered.connect(self.winScaner)
+
+        self.ui.actionViewNormal.triggered.connect(lambda: self.pressedButtonViewer(0))
+        self.ui.actionViewMax.triggered.connect(lambda: self.pressedButtonViewer(2))
+        self.ui.actionViewMin.triggered.connect(lambda: self.pressedButtonViewer(1))
 
         self.pagesBasic.connectAddFile(self.pressedButtonAdd)
         self.pagesSecond.connectAddFile(self.pressedButtonAdd)
@@ -148,19 +155,16 @@ class MyWindow(QMainWindow):
         self.pagesBasic.setGridSize(QSize())
         self.pagesSecond.setGridSize(QSize())
 
-    def pressedButtonViewer(self):
-        self.status_viewer += 1
-        if self.status_viewer > 2:
-            self.status_viewer = 0
-        if self.status_viewer == 0:
-            self.ui.scrollArea.setMaximumWidth(500)
-            self.ui.scrollArea.setMinimumWidth(500)
-        elif self.status_viewer == 1:
+    def pressedButtonViewer(self, status):
+        if status == 2:
             self.ui.scrollArea.setMaximumWidth(1800)
-            self.ui.scrollArea.setMinimumWidth(1400)
-        else:
+            self.ui.scrollArea.setMinimumWidth(1350)
+        elif status == 1:
             self.ui.scrollArea.setMaximumWidth(250)
             self.ui.scrollArea.setMinimumWidth(0)
+        else:
+            self.ui.scrollArea.setMaximumWidth(500)
+            self.ui.scrollArea.setMinimumWidth(500)
 
     def pressedButtonRestored(self):
         self.pagesBasic.clear()
@@ -266,8 +270,9 @@ class MyWindow(QMainWindow):
         QMessageBox.about(self, "О программе PDF shuffler",
                           "PDF shuffler - программа для пересортировки страниц PDF файлов.\n\n"
                           f"version {config.VERSION_PROGRAM}\n"
+                          f"Date production: {config.VERSION_DATE}\n\n"
                           "Автор: Алдунин Д.А.\n"
-                          "Date production: 2023\n"
+                          "Created Date: 04/10/2023\n"
                           "Powered by open source software: pdf2image, PyPDF2, PyQt5, python-sane\n")
 
     def winScaner(self):

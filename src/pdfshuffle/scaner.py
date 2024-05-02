@@ -1,17 +1,3 @@
-#!/usr/bin/env python3
-# ----------------------------------------------------------------------------
-# Created By  : Dmitriy Aldunin @DMcraft
-# Created Date: 07/01/2024
-# version ='1.1'
-# Copyright 2024 Dmitriy Aldunin
-# Licensed under the Apache License, Version 2.0
-# ---------------------------------------------------------------------------
-
-""" Вспомогательная программа сканирования изображений.
-
-$ pyuic5 scanerwindow.ui -o scanerwindow.py
-
-"""
 import os
 import sys
 import datetime
@@ -25,6 +11,8 @@ from getscan import WorkerDrive
 from scanerwindow import Ui_ScanerForm
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QWidget
 from PyQt5 import QtGui, QtCore
+
+# pyuic5 scanerwindow.ui -o ./src/pdfshuffle/scanerwindow.py
 
 SCANER_START_MAIN = False
 

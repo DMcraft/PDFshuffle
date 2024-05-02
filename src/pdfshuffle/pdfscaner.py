@@ -2,11 +2,10 @@
 #----------------------------------------------------------------------------
 # Created By  : Dmitriy Aldunin @DMcraft
 # Created Date: 07/01/2024
-# version ='1.0'
+# version ='2.4'
 # Copyright 2024 Dmitriy Aldunin
 # Licensed under the Apache License, Version 2.0
 # ---------------------------------------------------------------------------
-# pyuic5 scanerwindow.ui -o scanerwindow.py
 
 """ Вспомогательная программа сканирования изображений.
 
