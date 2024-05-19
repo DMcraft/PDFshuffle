@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime
 
 from PyQt5.QtGui import QPixmap
 
@@ -8,7 +9,7 @@ from loguru import logger
 
 from PyQt5.QtCore import QSize, Qt
 
-from pagelist import PageWidget, PRoleID
+from pagelist import PageWidget, PRoleID, PRoleSize
 from pdfdata import PDFData
 from scaner import ScanerWindow
 from window import Ui_MainWindow
@@ -114,10 +115,43 @@ class MyWindow(QMainWindow):
         self.ui.actionViewMax.triggered.connect(lambda: self.pressedButtonViewer(2))
         self.ui.actionViewMin.triggered.connect(lambda: self.pressedButtonViewer(1))
 
+        self.ui.actionSavetoImage.triggered.connect(lambda: self.tool_save_to_image(self.pagesBasic))
+        self.ui.actionTransformtoImage.triggered.connect(
+            lambda: self.tool_tranform_to_image(self.pagesBasic, self.pagesSecond))
+
         self.pagesBasic.connectAddFile(self.pressedButtonAdd)
         self.pagesSecond.connectAddFile(self.pressedButtonAdd)
         self.pagesBasic.clicked.connect(lambda: self.clickViewPage(self.pagesBasic))
         self.pagesSecond.clicked.connect(lambda: self.clickViewPage(self.pagesSecond))
+
+        self.pagesBasic.message.connect(self.setMessage)
+        self.pagesSecond.message.connect(self.setMessage)
+
+    @QtCore.pyqtSlot(str)
+    def setMessage(self, text):
+        self.ui.statusbar.showMessage(text)
+
+    def tool_save_to_image(self, pages: PageWidget):
+        filedir = QFileDialog.getExistingDirectory(None, "Save Images to directory", self.pathfile,
+                                                   QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+                                                   )
+        today = datetime.today().strftime('%Y%m%d%H%M%S')
+        if filedir:
+            for i in range(pages.count()):
+                filename = os.path.join(filedir, f'save_img-{today}_{i + 1:03}.pdf')
+                pdf.save_as(filename, (pages.item(i).data(PRoleID), ))
+
+        else:
+            self.ui.statusbar.showMessage('Отмена сохранения. Каталог не выбран.', 3000)
+
+    def tool_tranform_to_image(self, pages_in: PageWidget, pages_out: PageWidget):
+        for i in range(pages_in.count()):
+            item = pages_in.item(i)
+            image = pdf.get_image_page(item.data(PRoleID), config.PAGE_PAPER_DPI)
+
+            num_page = pdf.add_image_file('', img=image) - 1
+            pid = pdf.data[num_page]
+            pages_out.addPage(num_page, pid.name_page, pid.pix, pid.size, pid.comment)
 
     def pressed_scale_plus(self):
         self.scale_size *= 2
@@ -149,7 +183,7 @@ class MyWindow(QMainWindow):
         self.ui.labelView.setFixedSize(pix_scaled.width(), pix_scaled.height())
         self.ui.scrollAreaWidgetContents.setMinimumSize(pix_scaled.width(), pix_scaled.height())
         self.updatePages()
-        self.ui.statusbar.showMessage(pages.getTextSelected())
+        self.ui.statusbar.showMessage(pages.getSizeSelected() + '(' + pages.getTextSelected() + ')')
 
     def updatePages(self):
         self.pagesBasic.setGridSize(QSize())
@@ -221,13 +255,13 @@ class MyWindow(QMainWindow):
                 start_page, end_page = pdf.add_pdf_file(filename)
                 for i in range(start_page, end_page):
                     pid = pdf.data[i]
-                    pages.addPage(i, pid.name_page, pid.pix, pid.comment)
+                    pages.addPage(i, pid.name_page, pid.pix, pid.size, pid.comment)
             elif (filename.lower().endswith('.jpg') or filename.lower().endswith('.png')
                   or filename.lower().endswith('.jpeg')):
                 self.pathfile = os.path.dirname(filename)
                 num_page = pdf.add_image_file(filename) - 1
                 pid = pdf.data[num_page]
-                pages.addPage(num_page, pid.name_page, pid.pix, pid.comment)
+                pages.addPage(num_page, pid.name_page, pid.pix, pid.size, pid.comment)
         self.ui.lineviewpath.setText(self.pathfile)
 
     def changePaperSize(self, index):

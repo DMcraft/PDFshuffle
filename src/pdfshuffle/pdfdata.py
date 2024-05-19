@@ -10,12 +10,12 @@ import config
 
 
 class PDFPage:
-    def __init__(self, name_page: str = '', pix=None, pdf=None, comment: str = ''):
+    def __init__(self, name_page: str = '', pix=None, pdf=None, size: int = 0, comment: str = ''):
         self.name_page = name_page
         self.pix = pix
         self.pdf: PageObject = pdf
+        self.size = size
         self.comment = comment
-
 
 class PDFData:
     def __init__(self):
@@ -76,7 +76,7 @@ class PDFData:
         pixmap = QPixmap.fromImage(qi)
         self._addpage(PDFPage(f'{len(self.pdf_read)}| Image',
                               pixmap, pdf.pages[0],
-                              f'Размер: {img_byte_arr.getbuffer().nbytes // 1024} кб'
+                              size=img_byte_arr.getbuffer().nbytes
                               ))
         return len(self.data)
 
@@ -100,6 +100,16 @@ class PDFData:
 
         self.data[id_page].pix = pixmap
         return pixmap
+
+    def get_image_page(self, id_page: int, dpi: int = 200):
+        byte_arr = io.BytesIO()
+        output = PdfWriter()
+        output.add_page(self.data[id_page].pdf)
+        output.write(byte_arr)
+
+        image = convert_from_bytes(byte_arr.getvalue(), dpi=dpi)
+
+        return image[0]
 
     def save_as(self, filename, pgs):
         output = PdfWriter()

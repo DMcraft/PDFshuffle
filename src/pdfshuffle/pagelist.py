@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QSt
 PRoleID = Qt.UserRole + 33
 # PRoleRotate = Qt.UserRole + 34
 PRoleViewer = Qt.UserRole + 35
+PRoleSize = Qt.UserRole + 37
 PRoleComment = Qt.UserRole + 36
 
 
@@ -51,6 +52,9 @@ class PageDelegate(QStyledItemDelegate):
 
 
 class PageWidget(QListWidget):
+
+    message = QtCore.pyqtSignal(str)
+
     def __init__(self, wg):
         super().__init__(wg)
 
@@ -64,13 +68,14 @@ class PageWidget(QListWidget):
         self.setDragDropMode(QAbstractItemView.InternalMove)
         self.setItemDelegate(PageDelegate())
 
-    def addPage(self, key: int, text='', pix=None, comment: str = ''):
+    def addPage(self, key: int, text='', pix=None, size: int = 0, comment: str = ''):
         item = QListWidgetItem()
         item.setData(PRoleID, key)
         if pix is not None:
             pix_ico = pix.scaled(360, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             item.setData(PRoleViewer, pix)
             item.setData(Qt.DecorationRole, pix_ico)
+        item.setData(PRoleSize, size)
         item.setData(PRoleComment, comment)
         item.setText(text)
         self.addItem(item)
@@ -116,11 +121,13 @@ class PageWidget(QListWidget):
         if event.matches(QKeySequence.Delete):
             for item in self.selectedItems():
                 self.takeItem(self.row(item))
-
         elif event.key() == Qt.Key_Escape:
             self.currentList.currentList.setCurrentRow(-1)
         else:
             QListWidget.keyPressEvent(self, event)
+
+        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_A:
+            self.message.emit(self.getSizeSelected())
 
     def rotatePage(self, angle=90):
         angle = angle % 360
@@ -154,6 +161,13 @@ class PageWidget(QListWidget):
                 t_names.append(item.text())
 
         return ' - '.join(t_names)
+
+    def getSizeSelected(self):
+        size_all = 0
+        for item in self.selectedItems():
+            size_all += item.data(PRoleSize)
+
+        return f'Размер выбранного: {size_all // 1024} кб'
 
     def connectAddFile(self, func):
         self._func_add_file = func
