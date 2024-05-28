@@ -138,7 +138,7 @@ class MyWindow(QMainWindow):
         today = datetime.today().strftime('%Y%m%d%H%M%S')
         if filedir:
             for i in range(pages.count()):
-                filename = os.path.join(filedir, f'save_img-{today}_{i + 1:03}.pdf')
+                filename = os.path.join(filedir, f'save_img-{today}_{i + 1:03}.jpg')
                 pdf.save_as(filename, (pages.item(i).data(PRoleID), ))
 
         else:
@@ -204,7 +204,7 @@ class MyWindow(QMainWindow):
         self.pagesBasic.clear()
         for i in range(len(pdf.data)):
             pid = pdf.data[i]
-            self.pagesBasic.addPage(i, pid.name_page, pid.pix, pid.comment)
+            self.pagesBasic.addPage(i, pid.name_page, pid.pix, pid.size, pid.comment)
 
     def pressedButtonSave(self, pages: PageWidget):
         filename, _ = QFileDialog.getSaveFileName(None, "Save File", self.pathfile,
@@ -295,7 +295,7 @@ class MyWindow(QMainWindow):
 
         num_page = pdf.add_image_file('', img=image) - 1
         pid = pdf.data[num_page]
-        self.pagesSecond.addPage(num_page, pid.name_page, pid.pix, pid.comment)
+        self.pagesSecond.addPage(num_page, pid.name_page, pid.pix, pid.size, pid.comment)
 
     def resizeEvent(self, a0: QtGui.QResizeEvent) -> None:
         self.updatePages()
