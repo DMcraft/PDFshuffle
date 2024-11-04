@@ -174,6 +174,8 @@ class MyWindow(QMainWindow):
         self.current_pages_view = pages
 
         pix: QPixmap = pages.getPixmapSelected()
+        if pix is None:
+            return
         if pix.height() < self.scale_size:
             pix = pdf.reload_image(pages.getIDSelected(), self.scale_size)
             pages.setPixmapSelected(pix)
@@ -224,9 +226,12 @@ class MyWindow(QMainWindow):
         self.ui.lineviewpath.setText(self.pathfile)
 
     def pressedButtonRotate(self, pages: PageWidget):
-        for i in pages.rotatePage(90):
-            pdf.rotatepage(i, 90)
-        self.clickViewPage(pages)
+        if len(pages.selectedItems()) > 0:
+            for i in pages.rotatePage(90):
+                pdf.rotatepage(i, 90)
+            self.clickViewPage(pages)
+        else:
+            logger.info('Not selected page on rotate')
 
     def pressedButtonExchange(self):
         self.pagesBasic.clicked.disconnect()

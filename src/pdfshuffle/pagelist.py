@@ -138,13 +138,14 @@ class PageWidget(QListWidget):
                 trans_rotate = QTransform().rotate(angle)
                 item.setData(PRoleViewer, QPixmap(item.data(PRoleViewer).transformed(trans_rotate)))
                 item.setData(Qt.DecorationRole, QPixmap(item.data(Qt.DecorationRole).transformed(trans_rotate)))
-
+                c = item.data(PRoleID)
                 yield item.data(PRoleID)
         else:
             raise ValueError('Rotate page may be angle 0, 90, 180, 270')
 
     def getPixmapSelected(self):
-        return self.currentItem().data(PRoleViewer)
+        if self.currentItem() is not None:
+            return self.currentItem().data(PRoleViewer)
 
     def setPixmapSelected(self, pix):
         self.currentItem().setData(PRoleViewer, pix)

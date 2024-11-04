@@ -3,11 +3,10 @@ from loguru import logger
 
 from PyQt5.QtGui import QImage, QPixmap, QTransform
 from pdf2image import convert_from_path, convert_from_bytes
-from PyPDF2 import PdfReader, PdfWriter, PageObject
+from pypdf import PdfReader, PdfWriter, PageObject
 from PIL import Image
 
 import config
-
 
 class PDFPage:
     def __init__(self, name_page: str = '', pix=None, pdf=None, size: int = 0, comment: str = ''):
