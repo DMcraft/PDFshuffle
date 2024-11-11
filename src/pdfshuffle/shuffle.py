@@ -119,6 +119,8 @@ class MyWindow(QMainWindow):
         self.ui.actionTransformtoImage.triggered.connect(
             lambda: self.tool_tranform_to_image(self.pagesBasic, self.pagesSecond))
 
+        self.ui.splitterView.splitterMoved.connect(self.splitter_handler)
+
         self.pagesBasic.connectAddFile(self.pressedButtonAdd)
         self.pagesSecond.connectAddFile(self.pressedButtonAdd)
         self.pagesBasic.clicked.connect(lambda: self.clickViewPage(self.pagesBasic))
@@ -126,6 +128,11 @@ class MyWindow(QMainWindow):
 
         self.pagesBasic.message.connect(self.setMessage)
         self.pagesSecond.message.connect(self.setMessage)
+
+    def splitter_handler(self, pos):
+        w = self.ui.centralwidget.size().width() - pos
+        self.ui.scrollArea.setMaximumWidth(w)
+        config.OPTION_SPLITTER = w
 
     @QtCore.pyqtSlot(str)
     def setMessage(self, text):
@@ -139,7 +146,7 @@ class MyWindow(QMainWindow):
         if filedir:
             for i in range(pages.count()):
                 filename = os.path.join(filedir, f'save_img-{today}_{i + 1:03}.jpg')
-                pdf.save_as(filename, (pages.item(i).data(PRoleID), ))
+                pdf.save_as(filename, (pages.item(i).data(PRoleID),))
 
         else:
             self.ui.statusbar.showMessage('Отмена сохранения. Каталог не выбран.', 3000)
@@ -199,8 +206,8 @@ class MyWindow(QMainWindow):
             self.ui.scrollArea.setMaximumWidth(250)
             self.ui.scrollArea.setMinimumWidth(0)
         else:
-            self.ui.scrollArea.setMaximumWidth(500)
-            self.ui.scrollArea.setMinimumWidth(500)
+            self.ui.scrollArea.setMaximumWidth(50)
+            self.ui.scrollArea.setMinimumWidth(50)
 
     def pressedButtonRestored(self):
         self.pagesBasic.clear()
@@ -251,8 +258,8 @@ class MyWindow(QMainWindow):
     def pressedButtonAdd(self, pages: PageWidget, filename: str = None):
         if filename is None:
             filename, _ = QFileDialog.getOpenFileName(None, "Open File", self.pathfile,
-                                                      "PDF Files (*.pdf);;"
-                                                      "Image Files (*.jpg *.jpeg *.png)")
+                                                      "PDF Files (*.pdf *.PDF);;"
+                                                      "Image Files (*.jpg *.jpeg *.png *.JPG *.JPEG *.PNG)")
         if filename:
 
             if filename.lower().endswith('.pdf'):
@@ -320,6 +327,8 @@ class MyWindow(QMainWindow):
             self.wScan.push_image_scan.connect(self.addScanImage)
             self.wScan.close_window.connect(self.close_win_scaner)
             self.wScan.show()
+        else:
+            self.wScan.raise_()
 
     @QtCore.pyqtSlot()
     def close_win_scaner(self):

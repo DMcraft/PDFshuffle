@@ -3,8 +3,8 @@ import os
 
 from loguru import logger
 
-VERSION_PROGRAM = '2.4.1'
-VERSION_DATE = '02/05/2024'
+VERSION_PROGRAM = '2.5'
+VERSION_DATE = '15/11/2024'
 
 FILE_CFG = 'config.ini'
 BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
@@ -54,12 +54,16 @@ config['DEFAULT'] = {'program': 'PDFshuffle'}
 config['VERSION'] = {'version': f'{VERSION_PROGRAM}',
                      'date': f'{VERSION_DATE}'}
 
+if not config.has_section('OPTION'):
+    config.add_section('OPTION')
 if not config.has_section('PAGE'):
     config.add_section('PAGE')
 if not config.has_section('FILE'):
     config.add_section('FILE')
 if not config.has_section('SCAN'):
     config.add_section('SCAN')
+
+OPTION_SPLITTER = _get_value('OPTION', 'splitter', 400)
 
 PAGE_BACKGROUND_COLOR = _get_value('PAGE', 'background_color', 'white')
 PAGE_PAPER_DPI = _get_value('PAGE', 'paper_dpi', 200)
@@ -86,6 +90,8 @@ SCAN_SPLIT = tuple(map(_int_value, _get_value('SCAN', 'split', '0,0,0,0').split(
 
 
 def save_config():
+    config.set('OPTION', 'splitter', str(OPTION_SPLITTER))
+
     config.set('PAGE', 'background_color', PAGE_BACKGROUND_COLOR)
     config.set('PAGE', 'paper_dpi', str(PAGE_PAPER_DPI))
     config.set('PAGE', 'quality', str(PAGE_QUALITY))
