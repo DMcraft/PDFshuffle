@@ -93,10 +93,6 @@ class MyWindow(QMainWindow):
 
         self.ui.toolButtonRestore.clicked.connect(self.pressedButtonRestored)
 
-        self.ui.toolButtonViewerVisible.clicked.connect(lambda: self.pressedButtonViewer(0))
-        self.ui.toolButtonViewerVisible_1.clicked.connect(lambda: self.pressedButtonViewer(1))
-        self.ui.toolButtonViewerVisible_2.clicked.connect(lambda: self.pressedButtonViewer(2))
-
         self.ui.toolButtonScalePlus.clicked.connect(self.pressed_scale_plus)
         self.ui.toolButtonScaleMinus.clicked.connect(self.pressed_scale_minus)
         # Menu
@@ -119,7 +115,10 @@ class MyWindow(QMainWindow):
         self.ui.actionTransformtoImage.triggered.connect(
             lambda: self.tool_tranform_to_image(self.pagesBasic, self.pagesSecond))
 
-        self.ui.splitterView.splitterMoved.connect(self.splitter_handler)
+        if not self.restoreGeometry(config.OPTION_WINDOW):
+            logger.error(f'Error restore state windows: {config.OPTION_WINDOW}')
+        if not self.ui.splitterView.restoreState(config.OPTION_SPLITTER):
+            logger.error(f'Error restore state splitter: {config.OPTION_SPLITTER}')
 
         self.pagesBasic.connectAddFile(self.pressedButtonAdd)
         self.pagesSecond.connectAddFile(self.pressedButtonAdd)
@@ -129,10 +128,6 @@ class MyWindow(QMainWindow):
         self.pagesBasic.message.connect(self.setMessage)
         self.pagesSecond.message.connect(self.setMessage)
 
-    def splitter_handler(self, pos):
-        w = self.ui.centralwidget.size().width() - pos
-        self.ui.scrollArea.setMaximumWidth(w)
-        config.OPTION_SPLITTER = w
 
     @QtCore.pyqtSlot(str)
     def setMessage(self, text):
@@ -197,17 +192,6 @@ class MyWindow(QMainWindow):
     def updatePages(self):
         self.pagesBasic.setGridSize(QSize())
         self.pagesSecond.setGridSize(QSize())
-
-    def pressedButtonViewer(self, status):
-        if status == 2:
-            self.ui.scrollArea.setMaximumWidth(1800)
-            self.ui.scrollArea.setMinimumWidth(1350)
-        elif status == 1:
-            self.ui.scrollArea.setMaximumWidth(250)
-            self.ui.scrollArea.setMinimumWidth(0)
-        else:
-            self.ui.scrollArea.setMaximumWidth(50)
-            self.ui.scrollArea.setMinimumWidth(50)
 
     def pressedButtonRestored(self):
         self.pagesBasic.clear()
@@ -319,7 +303,7 @@ class MyWindow(QMainWindow):
                           f"Date production: {config.VERSION_DATE}\n\n"
                           "Автор: Алдунин Д.А.\n"
                           "Created Date: 04/10/2023\n"
-                          "Powered by open source software: pdf2image, PyPDF2, PyQt5, python-sane\n")
+                          "Powered by open source software: pdf2image, PyPDF, PyQt5, python-sane\n")
 
     def winScaner(self):
         if self.wScan is None:
@@ -356,6 +340,8 @@ class MyWindow(QMainWindow):
                                       desktop=False, menu=True, categories=shortcut.CATEGORIES_OFFICE)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        config.OPTION_SPLITTER = self.ui.splitterView.saveState()
+        config.OPTION_WINDOW = self.saveGeometry()
         config.save_config()
         if self.wScan is not None:
             self.wScan.close()

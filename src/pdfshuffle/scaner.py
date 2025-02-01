@@ -100,6 +100,9 @@ class ScanerWindow(QWidget):
             self.ui.comboBox_device.addItem(config.SCAN_DEVICE_NAME, config.SCAN_DEVICE_SIGNATURE)
             self.ui.comboBox_device.setCurrentText(config.SCAN_DEVICE_NAME)
 
+        if not self.restoreGeometry(config.OPTION_WINDOW_SCAN):
+            logger.error(f'Error restore state window scan: {config.OPTION_WINDOW_SCAN}')
+
     @QtCore.pyqtSlot(str, object)
     def set_devices(self, string, devices):
         """ function description """
@@ -249,6 +252,8 @@ class ScanerWindow(QWidget):
                              self.ui.spinBox_right.value(), self.ui.spinBox_lower.value())
         config.SCAN_AUTOSAVE = self.ui.checkBox_autosave.isChecked()
         config.SCAN_QUALITY = self.ui.spinBox_quality.value()
+        config.OPTION_WINDOW_SCAN = self.saveGeometry()
+
 
         config.save_config()
         self.thread.quit()

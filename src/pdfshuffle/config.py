@@ -22,7 +22,7 @@ def _int_value(s: str) -> int:
 
 def _get_value(section: str, option: str, fallback):
     value = None
-    if isinstance(fallback, (str, int, bool)):
+    if isinstance(fallback, (str, int, bool, bytes)):
         try:
             value = config[section].get(option.lower())
             if value is None:
@@ -45,6 +45,12 @@ def _get_value(section: str, option: str, fallback):
         except ValueError as v:
             logger.error(f'Config value int error {option} "{v}"')
             return fallback
+    elif isinstance(fallback, bytes):
+        try:
+            return bytes.fromhex(value)
+        except ValueError as v:
+            logger.error(f'Config value bytes error {option} "{v}"')
+            return fallback
 
 
 config = configparser.ConfigParser()
@@ -63,7 +69,9 @@ if not config.has_section('FILE'):
 if not config.has_section('SCAN'):
     config.add_section('SCAN')
 
-OPTION_SPLITTER = _get_value('OPTION', 'splitter', 400)
+OPTION_SPLITTER = _get_value('OPTION', 'splitter', b'\x00')
+OPTION_WINDOW = _get_value('OPTION', 'window', b'\x00')
+OPTION_WINDOW_SCAN = _get_value('OPTION', 'windowscan', b'\x00')
 
 PAGE_BACKGROUND_COLOR = _get_value('PAGE', 'background_color', 'white')
 PAGE_PAPER_DPI = _get_value('PAGE', 'paper_dpi', 200)
@@ -86,11 +94,13 @@ SCAN_AREA = _get_value('SCAN', 'area', 'Full')
 SCAN_QUALITY = _get_value('SCAN', 'quality', 90)
 SCAN_AUTOSAVE = _get_value('SCAN', 'autosave', False)
 
-SCAN_SPLIT = tuple(map(_int_value, _get_value('SCAN', 'split', '0,0,0,0').split(',', 4)))
+SCAN_SPLIT = tuple(_get_value('SCAN', 'split', b'\x00\x00\x00\x00'))
 
 
 def save_config():
-    config.set('OPTION', 'splitter', str(OPTION_SPLITTER))
+    config.set('OPTION', 'splitter', bytes(OPTION_SPLITTER).hex())
+    config.set('OPTION', 'window', bytes(OPTION_WINDOW).hex())
+    config.set('OPTION', 'windowscan', bytes(OPTION_WINDOW_SCAN).hex())
 
     config.set('PAGE', 'background_color', PAGE_BACKGROUND_COLOR)
     config.set('PAGE', 'paper_dpi', str(PAGE_PAPER_DPI))
@@ -113,7 +123,7 @@ def save_config():
     config.set('SCAN', 'autosave', str(SCAN_AUTOSAVE))
     config.set('SCAN', 'quality', str(SCAN_QUALITY))
 
-    config.set('SCAN', 'split', ','.join(map(str, SCAN_SPLIT)))
+    config.set('SCAN', 'split', bytes(SCAN_SPLIT).hex())
 
     with open(FILE_CFG, 'w') as configfile:
         config.write(configfile)
