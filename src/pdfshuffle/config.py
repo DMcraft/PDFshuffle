@@ -3,14 +3,15 @@ import os
 
 from loguru import logger
 
-VERSION_PROGRAM = '2.5'
-VERSION_DATE = '15/11/2024'
+VERSION_PROGRAM = '2.6'
+VERSION_DATE = '02/01/2025'
 
 FILE_CFG = 'config.ini'
 BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
                   '0': False, 'no': False, 'false': False, 'off': False}
 
 SCALE_SIZE = 480
+
 
 def _int_value(s: str) -> int:
     try:
@@ -51,6 +52,27 @@ def _get_value(section: str, option: str, fallback):
         except ValueError as v:
             logger.error(f'Config value bytes error {option} "{v}"')
             return fallback
+
+
+def int_to_bytes(mas: (tuple, list)) -> bytes:
+    t = []
+    for m in mas:
+        if 0 < m < 2 ** 16:
+            t.append(m // 256)
+            t.append(m % 256)
+        else:
+            t.extend((0, 0))
+    return bytes(t)
+
+
+def bytes_to_int(bas: bytes, min_length: int = 0):
+    t = []
+    for i in range(0, len(bas), 2):
+        if i + 1 < len(bas):
+            t.append(bas[i] * 256 + bas[i + 1])
+    if len(t) < min_length:
+        t.extend([0] * (min_length - len(t)))
+    return t
 
 
 config = configparser.ConfigParser()
@@ -94,7 +116,7 @@ SCAN_AREA = _get_value('SCAN', 'area', 'Full')
 SCAN_QUALITY = _get_value('SCAN', 'quality', 90)
 SCAN_AUTOSAVE = _get_value('SCAN', 'autosave', False)
 
-SCAN_SPLIT = tuple(_get_value('SCAN', 'split', b'\x00\x00\x00\x00'))
+SCAN_SPLIT = bytes_to_int(_get_value('SCAN', 'split', int_to_bytes((0, 0, 210, 297))), 4)
 
 
 def save_config():
@@ -123,7 +145,7 @@ def save_config():
     config.set('SCAN', 'autosave', str(SCAN_AUTOSAVE))
     config.set('SCAN', 'quality', str(SCAN_QUALITY))
 
-    config.set('SCAN', 'split', bytes(SCAN_SPLIT).hex())
+    config.set('SCAN', 'split', int_to_bytes(SCAN_SPLIT).hex())
 
     with open(FILE_CFG, 'w') as configfile:
         config.write(configfile)

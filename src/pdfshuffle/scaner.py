@@ -178,6 +178,7 @@ class ScanerWindow(QWidget):
         logger.info(f'processing image {type(image)}')
 
         area = self.ui.comboBox_area.currentData()
+
         dpm = self.ui.comboBox_dpi.currentData() / 25.4
         crop_image = image.crop((int(area[0] * dpm + self.ui.spinBox_left.value() * dpm),
                                  int(area[1] * dpm + self.ui.spinBox_upper.value() * dpm),

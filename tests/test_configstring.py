@@ -1,4 +1,4 @@
-from configstring import ConfigString
+from src.pdfshuffle.configstring import ConfigString
 
 
 
