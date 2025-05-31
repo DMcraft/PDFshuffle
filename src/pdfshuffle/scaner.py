@@ -27,10 +27,12 @@ class ScanerWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.image_buf = None
+        icon = QtGui.QIcon(config.ICON_PATH_SCANER.as_posix())
         # Set up the UI
         self.ui = Ui_ScanerForm()
         self.ui.setupUi(self)
         self.setWindowTitle('Scaner Shuffle')
+        self.setWindowIcon(icon)
 
         self.ui.groupBoxSave.setEnabled(config.SCAN_AUTOSAVE if SCANER_START_MAIN else False)
         self.ui.checkBox_autosave.setChecked(config.SCAN_AUTOSAVE)
@@ -180,10 +182,17 @@ class ScanerWindow(QWidget):
         area = self.ui.comboBox_area.currentData()
 
         dpm = self.ui.comboBox_dpi.currentData() / 25.4
-        crop_image = image.crop((int(area[0] * dpm + self.ui.spinBox_left.value() * dpm),
-                                 int(area[1] * dpm + self.ui.spinBox_upper.value() * dpm),
-                                 int(min(image.width, area[2] * dpm) - self.ui.spinBox_right.value() * dpm),
-                                 int(min(image.height, area[3] * dpm) - self.ui.spinBox_lower.value() * dpm)))
+        left = int(area[0] * dpm + self.ui.spinBox_left.value() * dpm)
+        upper = int(area[1] * dpm + self.ui.spinBox_upper.value() * dpm)
+        right = int(min(image.width, area[2] * dpm) - self.ui.spinBox_right.value() * dpm)
+        lower = int(min(image.height, area[3] * dpm) - self.ui.spinBox_lower.value() * dpm)
+        # Validate and adjust the coordinates to be within image bounds
+        left = max(0, min(left, image.width - 1))
+        upper = max(0, min(upper, image.height - 1))
+        right = max(left + 1, min(right, image.width))
+        lower = max(upper + 1, min(lower, image.height))
+
+        crop_image = image.crop((left, upper, right, lower))
 
         self.image_buf = crop_image
         if SCANER_START_MAIN:

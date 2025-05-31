@@ -1,5 +1,6 @@
 import configparser
 import os
+from pathlib import Path
 
 from loguru import logger
 
@@ -10,8 +11,11 @@ FILE_CFG = 'config.ini'
 BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
                   '0': False, 'no': False, 'false': False, 'off': False}
 
-SCALE_SIZE = 480
+SCALE_SIZE = 240
 
+ICON_PATH_SHUFFLE = Path.cwd() / 'icons/pdfshuffle.png'
+ICON_PATH_SCANER = Path.cwd() / 'icons/pdfscaner.png'
+logger.debug(ICON_PATH_SHUFFLE)
 
 def _int_value(s: str) -> int:
     try:
@@ -116,7 +120,7 @@ SCAN_AREA = _get_value('SCAN', 'area', 'Full')
 SCAN_QUALITY = _get_value('SCAN', 'quality', 90)
 SCAN_AUTOSAVE = _get_value('SCAN', 'autosave', False)
 
-SCAN_SPLIT = bytes_to_int(_get_value('SCAN', 'split', int_to_bytes((0, 0, 210, 297))), 4)
+SCAN_SPLIT = bytes_to_int(_get_value('SCAN', 'split', int_to_bytes((0, 0, 0, 0))), 4)
 
 
 def save_config():

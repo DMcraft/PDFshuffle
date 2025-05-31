@@ -23,7 +23,7 @@ import shuffle
 if __name__ == '__main__':
     if environ.get('PRODUCTION') is None:
         logger.remove(handler_id=None)
-        logger.add("runtime.log", rotation="10 MB")
+        logger.add("pdfshuffle.log", rotation="10 MB")
 
     print('Start program...')
 

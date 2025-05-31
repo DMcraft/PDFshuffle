@@ -4,11 +4,15 @@ from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QKeySequence, QDragEnterEvent, QColor, QFont, QPixmap, QTransform, QDragLeaveEvent
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QStyledItemDelegate, QStyle
 
+from pdfdata import PDFPage
+
+PRolePage = Qt.UserRole + 10
 PRoleID = Qt.UserRole + 33
 # PRoleRotate = Qt.UserRole + 34
-PRoleViewer = Qt.UserRole + 35
+# PRoleViewer = Qt.UserRole + 35
 PRoleSize = Qt.UserRole + 37
 PRoleComment = Qt.UserRole + 36
+
 
 
 class PageDelegate(QStyledItemDelegate):
@@ -68,16 +72,16 @@ class PageWidget(QListWidget):
         self.setDragDropMode(QAbstractItemView.InternalMove)
         self.setItemDelegate(PageDelegate())
 
-    def addPage(self, key: int, text='', pix=None, size: int = 0, comment: str = ''):
+    def __iter__(self):
+        for i in range(self.count()):
+            yield self.item(i)
+
+    def addPage(self, page:PDFPage):
         item = QListWidgetItem()
-        item.setData(PRoleID, key)
-        if pix is not None:
-            pix_ico = pix.scaled(360, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            item.setData(PRoleViewer, pix)
-            item.setData(Qt.DecorationRole, pix_ico)
-        item.setData(PRoleSize, size)
-        item.setData(PRoleComment, comment)
-        item.setText(text)
+        item.setData(PRolePage, page)
+        item.setData(PRoleID, page.get_id())
+        item.setData(Qt.DecorationRole, page.get_image(80, 80))
+        item.setText("text addPage")
         self.addItem(item)
 
     def dragLeaveEvent(self, e: QDragLeaveEvent):
@@ -134,38 +138,35 @@ class PageWidget(QListWidget):
         if angle < 0:
             angle = 360 - angle
         if angle in (0, 90, 180, 270):
+            trans_rotate = QTransform().rotate(angle)
             for item in self.selectedItems():
-                trans_rotate = QTransform().rotate(angle)
-                item.setData(PRoleViewer, QPixmap(item.data(PRoleViewer).transformed(trans_rotate)))
                 item.setData(Qt.DecorationRole, QPixmap(item.data(Qt.DecorationRole).transformed(trans_rotate)))
+                item.data(PRolePage).rotate(angle)
                 yield item.data(PRoleID)
         else:
             raise ValueError('Rotate page may be angle 0, 90, 180, 270')
 
-    def getPixmapSelected(self):
-        if self.currentItem() is not None:
-            return self.currentItem().data(PRoleViewer)
-
-    def setPixmapSelected(self, pix):
-        self.currentItem().setData(PRoleViewer, pix)
-
-    def getIDSelected(self):
+    def get_current_id(self):
         return self.currentItem().data(PRoleID)
 
-    def getTextSelected(self):
-        t_names = []
-        for item in self.selectedItems():
-            if len(item.data(PRoleComment)) > 0:
-                t_names.append(f'{item.text()} > {item.data(PRoleComment)}')
-            else:
-                t_names.append(item.text())
+    def get_current_page(self):
+        return self.currentItem().data(PRolePage)
 
-        return ' - '.join(t_names)
+    def getTextSelected(self):
+        # t_names = []
+        # for item in self.selectedItems():
+        #     if len(item.data(PRoleComment)) > 0:
+        #         t_names.append(f'{item.text()} > {item.data(PRoleComment)}')
+        #     else:
+        #         t_names.append(item.text())
+        #
+        # return ' - '.join(t_names)
+        return 'getTextSelected'
 
     def getSizeSelected(self):
         size_all = 0
         for item in self.selectedItems():
-            size_all += item.data(PRoleSize)
+            size_all += item.data(PRolePage).size
 
         return f'Размер выбранного: {size_all // 1024} кб'
 

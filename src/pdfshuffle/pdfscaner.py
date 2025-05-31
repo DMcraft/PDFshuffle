@@ -19,6 +19,6 @@ import scaner
 if __name__ == '__main__':
     if environ.get('PRODUCTION') is None:
         logger.remove(handler_id=None)
-        logger.add("runtime.log", rotation="10 MB")
+        logger.add("pdfscaner.log", rotation="10 MB")
     scaner.SCANER_START_MAIN = True
     scaner.main()

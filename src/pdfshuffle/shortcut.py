@@ -7,6 +7,7 @@ ERROR_NOT_FIND_SCAN_FILE = 12
 ERROR_NOT_FIND_MENU_DIR = 13
 CATEGORIES_OFFICE = 'Office;Viewer;Scanning;'
 
+
 # Main Categories:
 # Audio;Video;Development;Education;
 # Game;Graphics;Network;Office;Settings;Utility;
@@ -47,17 +48,17 @@ def create_desktop_entry(name: str, file_name: Union[Path, str], icon: Union[Pat
     current_dir = Path.cwd()
     exec_file = current_dir / file_name
 
-    data = ['[Desktop Entry]',
-            'Type=Application',
-            'Terminal=false',
-            f'Name={name}',
-            f'Exec={exec_file}',
-            f'Path={current_dir}',
-            ]
+    content_label = ['[Desktop Entry]',
+                     'Type=Application',
+                     'Terminal=false',
+                     f'Name={name}',
+                     f'Exec={exec_file}',
+                     f'Path={current_dir}',
+                     ]
     if icon is not None:
-        data.append(f'Icon={current_dir / icon}')
+        content_label.append(f'Icon={current_dir / icon}')
     if comment is not None:
-        data.append(f'Comment={comment}')
+        content_label.append(f'Comment={comment}')
 
     if exec_file.exists():
         if desktop:
@@ -70,7 +71,7 @@ def create_desktop_entry(name: str, file_name: Union[Path, str], icon: Union[Pat
 
             file_path = desktop_dir / f'{name}.desktop'
             with file_path.open('w') as fp:
-                for s in data:
+                for s in content_label:
                     fp.write(s)
                     fp.write('\n')
             file_path.chmod(0o755)
@@ -79,10 +80,10 @@ def create_desktop_entry(name: str, file_name: Union[Path, str], icon: Union[Pat
             if not menu_dir.is_dir():
                 return ERROR_NOT_FIND_MENU_DIR
             if categories is not None:
-                data.append(f'Categories={categories}')
+                content_label.append(f'Categories={categories}')
             file_path = menu_dir / f'{name}.desktop'
             with file_path.open('w') as fp:
-                for s in data:
+                for s in content_label:
                     fp.write(s)
                     fp.write('\n')
             file_path.chmod(0o755)

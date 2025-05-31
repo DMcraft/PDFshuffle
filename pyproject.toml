@@ -1,25 +1,22 @@
-[tool.poetry]
-name = "pdfshuffle"
-version = "0.1.0"
-description = ""
-authors = ["Your Name <you@example.com>"]
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
 
-[tool.poetry.dependencies]
-python = "^3.9"
-PyQt5 = "=5.15.2"
-pdf2image = "^1.16.3"
-loguru = "^0.7.1"
-pytest = "^7.4.2"
-python-sane = "^2.9.1"
-pypdf = "^5.1.0"
-
-[tool.poetry.dev-dependencies]
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.pytest.ini_options]
-pythonpath = [
-  "src/pdfshuffle"
+[project]
+authors = [
+    {name = "Dmitriy Aldunin", email = "craft@ctvi.ru"},
 ]
+requires-python = "<4.0,>=3.9"
+dependencies = [
+    "PyQt5==5.15.2",
+    "pdf2image<2.0.0,>=1.16.3",
+    "loguru<1.0.0,>=0.7.1",
+    "pytest<8.0.0,>=7.4.2",
+    "python-sane<3.0.0,>=2.9.1",
+    "pypdf<6.0.0,>=5.1.0",
+]
+name = "pdfshuffle"
+version = "2.4.0"
+description = ""
+
+[project.requires-plugins]
+poetry-plugin-export = ">=1.8"
