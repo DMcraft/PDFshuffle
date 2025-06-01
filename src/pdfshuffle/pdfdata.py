@@ -1,4 +1,5 @@
 import io
+import os
 
 from PyQt5 import QtCore
 from loguru import logger
@@ -13,20 +14,18 @@ from function import calculate_fitted_image_size
 
 
 class PDFPage:
-     # def __init__(self, pix=None, pdf=None, size_data: int = 0):
-    def __init__(self, page, name_page: str = '', comment: str = ''):
+    # def __init__(self, pix=None, pdf=None, size_data: int = 0):
+    def __init__(self, page, name_page: str = '', pathfile: str = '', comment: str = ''):
         self._index = None
         self.pdf: PageObject = page
         self.size = 0
-        
+
         self.pix: QPixmap = None
-        self.reload_image()
-        
+        self.reload_pixmap()
+
+        self.path = pathfile
         self.name_page = name_page
         self.comment = comment
-
-
-
 
     def get_id(self):
         if self._index is None:
@@ -34,15 +33,27 @@ class PDFPage:
         else:
             return self._index
 
-    def get_image(self, width:int=0, height:int=0) -> Image:
+    def get_image(self, width, height, keepaspect: bool = True):
+        if not keepaspect:
+            width, height = calculate_fitted_image_size(self.pix.width(), self.pix.height(), width, height)
+        byte_arr = io.BytesIO()
+        output = PdfWriter()
+        output.add_page(self.pdf)
+        output.write(byte_arr)
+        self.size = len(byte_arr.getvalue())
+        images = convert_from_bytes(byte_arr.getvalue(), size=(width, height),
+                                    dpi=600, fmt="png")
+        return images[0]
+
+    def get_pixmap(self, width: int = 0, height: int = 0) -> Image:
         width_scale, height_scale = calculate_fitted_image_size(self.pix.width(), self.pix.height(),
                                                                 width, height)
         if width_scale > self.pix.width() or height_scale > self.pix.height():
-            self.reload_image(max(width_scale, self.pix.width()), max(height_scale, self.pix.height()))
+            self.reload_pixmap(max(width_scale, self.pix.width()), max(height_scale, self.pix.height()))
 
         return self.pix.scaled(width_scale, height_scale, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
 
-    def reload_image(self, width:int=0, height:int=0):
+    def reload_pixmap(self, width: int = 0, height: int = 0):
         if width == 0 and height == 0:
             height = config.SCALE_SIZE
         else:
@@ -51,17 +62,13 @@ class PDFPage:
             if height > self.pix.height():
                 height = ((height + config.SCALE_SIZE - 1) // config.SCALE_SIZE) * config.SCALE_SIZE
         width_scale, height_scale = calculate_fitted_image_size(self.pdf.mediabox.width, self.pdf.mediabox.height,
-                                                            0, height, extend=True)
+                                                                0, height, extend=True)
         logger.info(f'Reload scale: w{width_scale} х h{height_scale}')
-        byte_arr = io.BytesIO()
-        output = PdfWriter()
-        output.add_page(self.pdf)
-        output.write(byte_arr)
-        self.size = len(byte_arr.getvalue())
-        images = convert_from_bytes(byte_arr.getvalue(), size=(width_scale or None , height_scale or None))
-        image = images[0].convert("RGB")
-        data = image.tobytes("raw", "RGB")
-        qi = QImage(data, image.size[0], image.size[1], image.size[0] * 3, QImage.Format.Format_RGB888)
+        image = self.get_image(width_scale or None, height_scale or None)
+        # format to pixmap
+        image_pix = image.convert("RGB")
+        data = image_pix.tobytes("raw", "RGB")
+        qi = QImage(data, image.size[0], image_pix.size[1], image_pix.size[0] * 3, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(qi)
         self.pix = pixmap
         return self
@@ -72,7 +79,21 @@ class PDFPage:
         self.pix = QPixmap(self.pix).transformed(trans_rotate)
         return self
 
+    def save_image_as(self, filename, height_size: int, quality: int = 90, dpi: int = 200):
+        byte_arr = io.BytesIO()
+        output = PdfWriter()
+        output.add_page(self.pdf)
+        output.write(byte_arr)
 
+        images = convert_from_bytes(byte_arr.getvalue(), size=(None, height_size), fmt="png")
+        if images is not None and images:
+            images[0].save(filename,
+                           format='JPEG',
+                           quality=quality,
+                           optimize=True,
+                           progressive=False,
+                           dpi=(dpi, dpi)
+                           )
 
 
 class PDFData:
@@ -81,8 +102,8 @@ class PDFData:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.data = []         # Список страниц PDF
-            cls._instance.index_file = 0    # Номер загружаемого файла
+            cls._instance.data = []  # Список страниц PDF
+            cls._instance.index_file = 0  # Номер загружаемого файла
             # cls._instance.pdf_read = []  # Дополнительные данные (если нужны)
         return cls._instance
 
@@ -98,12 +119,14 @@ class PDFData:
     def add_pdf_file(self, filename):
         start_page = len(self.data)
         pdf = PdfReader(filename)
+        path = os.path.dirname(filename)
         self.index_file += 1
         for i in range(len(pdf.pages)):
-            self._addpage(PDFPage(pdf.pages[i], name_page=f'{self.index_file} | {i + 1}',))
+            self._addpage(PDFPage(pdf.pages[i], name_page=f'{self.index_file} p{i + 1}',
+                                  pathfile=path))
         return start_page, len(self.data)
 
-    def add_image_file(self, filename, img=None):
+    def add_image_file(self, filename='', img=None):
         if img is None:
             img = Image.open(filename)
 
@@ -126,8 +149,9 @@ class PDFData:
         canvas_image.save(img_byte_arr, format='PDF', quality=config.PAGE_QUALITY,
                           dpi=(config.PAGE_PAPER_DPI, config.PAGE_PAPER_DPI))
         pdf = PdfReader(img_byte_arr)
+        path = os.path.dirname(filename)
         self.index_file += 1
-        self._addpage(PDFPage(pdf.pages[0], name_page=f'{self.index_file} | Image'))
+        self._addpage(PDFPage(pdf.pages[0], name_page=f'{self.index_file} Image', pathfile=path))
         return self.last_page()
 
     def resize_image(self, image, width, height):
@@ -136,25 +160,7 @@ class PDFData:
         new_height = int(aspect_ratio * image.size[1])
         return image.resize((new_width, new_height), resample=Image.Resampling.BILINEAR)
 
-
-
-    def save_image_as(self, id_page:int, filename, size:int, quality:int=90, dpi:int=200):
-        byte_arr = io.BytesIO()
-        output = PdfWriter()
-        output.add_page(self.get_page(id_page).pdf)
-        output.write(byte_arr)
-
-        images = convert_from_bytes(byte_arr.getvalue(), size=(None, size))
-        if images is not None and images:
-            images[0].save(filename,
-                format='JPEG',
-                quality=quality,
-                optimize=True,
-                progressive=False,
-                dpi=(dpi, dpi)
-            )
-
-    def get_page(self, id_page = None):
+    def get_page(self, id_page=None):
         if not self.data:  # если список пуст
             raise ValueError("self.data is empty!")
         if id_page is None:

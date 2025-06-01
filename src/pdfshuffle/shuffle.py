@@ -49,7 +49,10 @@ class MyWindow(QMainWindow):
             self.ui.comboBoxOrientation.findText(config.PAGE_PAPER_ORIENTATION))
 
         self.ui.lineviewpath.setText(self.pathfile)
-        self.ui.toolButtonPath.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineviewpath.text()}"'))
+        self.ui.toolButtonPathFile.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineviewpath.text()}"'))
+
+        self.ui.lineviewpathfile.setText(self.pathfile)
+        self.ui.toolButtonPath.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineviewpathfile.text()}"'))
 
         self.ui.comboBoxPaperDPI.addItem('75 dpi', 75)
         self.ui.comboBoxPaperDPI.addItem('100 dpi', 100)
@@ -63,6 +66,7 @@ class MyWindow(QMainWindow):
             self.ui.comboBoxPaperDPI.findData(config.PAGE_PAPER_DPI))
 
         self.ui.spinquality.setValue(config.PAGE_QUALITY)
+        self.ui.spinImageSize.setValue(config.PAGE_IMAGE_SIZE)
 
         self.ui.checkBoxImageFormatting.setChecked(config.PAGE_PAPER_FORMATTING)
         self.ui.checkBoxImageExtend.setChecked(config.PAGE_IMAGE_EXTEND)
@@ -73,6 +77,7 @@ class MyWindow(QMainWindow):
         self.ui.SecondLayout.addWidget(self.pagesSecond)
 
         self.ui.spinquality.valueChanged.connect(self.changedSpinQuality)
+        self.ui.spinImageSize.valueChanged.connect(self.changedImageSize)
 
         self.ui.comboBoxOrientation.currentIndexChanged.connect(self.changePaperOrientation)
         self.ui.comboBoxSizePaper.currentIndexChanged.connect(self.changePaperSize)
@@ -117,10 +122,6 @@ class MyWindow(QMainWindow):
         self.ui.actionShortcutMenu.triggered.connect(self.pressed_action_shortcut_menu)
         self.ui.actionScan.triggered.connect(self.winScaner)
 
-        self.ui.actionViewNormal.triggered.connect(lambda: self.pressedButtonViewer(0))
-        self.ui.actionViewMax.triggered.connect(lambda: self.pressedButtonViewer(2))
-        self.ui.actionViewMin.triggered.connect(lambda: self.pressedButtonViewer(1))
-
         self.ui.actionSavetoImage.triggered.connect(lambda: self.tool_save_to_image(self.pagesBasic))
         self.ui.actionTransformtoImage.triggered.connect(
             lambda: self.tool_tranform_to_image(self.pagesBasic, self.pagesSecond))
@@ -145,20 +146,21 @@ class MyWindow(QMainWindow):
 
     def tool_save_to_image(self, pages: PageWidget):
         filedir = QFileDialog.getExistingDirectory(None, "Save Images to directory", self.pathfile,
-                                                   QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
-                                                   )
+                                                   QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
         today = datetime.today().strftime('%Y%m%d%H%M%S')
         if filedir:
-            for i in range(pages.count()):
+            for i, item in enumerate(pages, 1):
                 filename = os.path.join(filedir, f'save_img-{today}_{i + 1:03}.jpg')
-                pdf_storage.save_as(filename, (pages.item(i).data(PRoleID),))
-
+                page: PDFPage = item.data(PRolePage)
+                page.save_image_as(filename, config.PAGE_IMAGE_SIZE, quality=config.PAGE_QUALITY,
+                                   dpi=config.PAGE_PAPER_DPI)
         else:
             self.ui.statusbar.showMessage('Отмена сохранения. Каталог не выбран.', 3000)
 
     def tool_tranform_to_image(self, pages_in: PageWidget, pages_out: PageWidget):
         for item in pages_in:
-            image = item.data(PRolePage).get_image(config.PAGE_PAPER_DPI)
+            image = item.data(PRolePage).get_image(config.MAX_INT, config.PAGE_IMAGE_SIZE,
+                                                   keepaspect=False)
             pages_out.addPage(pdf_storage.add_image_file('', img=image))
 
     def pressed_scale(self, scale=0):
@@ -191,9 +193,9 @@ class MyWindow(QMainWindow):
             height_extend = self.ui.scrollArea.height() - 20
 
         if width_extend or height_extend:
-            pix_scaled: QPixmap = page.get_image(width_extend, height_extend)
+            pix_scaled: QPixmap = page.get_pixmap(width_extend, height_extend)
         else:
-            pix_scaled: QPixmap = page.get_image(height=self.scale_size)
+            pix_scaled: QPixmap = page.get_pixmap(height=self.scale_size)
 
         self.ui.labelView.setPixmap(pix_scaled)
         # self.ui.labelView.setFixedSize(pix_scaled.width(), pix_scaled.height())
@@ -204,6 +206,7 @@ class MyWindow(QMainWindow):
                                           f'size {page.size// 1024} Кб'
                                           )
 
+        self.ui.lineviewpathfile.setText(page.path)
         self.updatePages()
         self.ui.statusbar.showMessage(self.current_pages_view.getSizeSelected() +
                                       '(' + self.current_pages_view.getTextSelected() + ')')
@@ -303,6 +306,9 @@ class MyWindow(QMainWindow):
     def changedSpinQuality(self, value):
         config.PAGE_QUALITY = self.ui.spinquality.value()
 
+    def changedImageSize(self, value):
+        config.PAGE_IMAGE_SIZE = self.ui.spinImageSize.value()
+
     def changePaperFormatting(self, state):
         if state == QtCore.Qt.Checked:
             config.PAGE_PAPER_FORMATTING = True
@@ -328,9 +334,9 @@ class MyWindow(QMainWindow):
     def winAbout(self):
         QMessageBox.about(self, "О программе PDF shuffler",
                           "PDF shuffler - программа для пересортировки страниц PDF файлов.\n\n"
-                          f"version {config.VERSION_PROGRAM}\n"
+                          f"Version {config.VERSION_PROGRAM}\n"
                           f"Date production: {config.VERSION_DATE}\n\n"
-                          "Автор: Алдунин Д.А.\n"
+                          "Design: Dmitriy Aldunin \n"
                           "Created Date: 04/10/2023\n"
                           "Powered by open source software: pdf2image, PyPDF, PyQt5, python-sane\n")
 

@@ -80,8 +80,8 @@ class PageWidget(QListWidget):
         item = QListWidgetItem()
         item.setData(PRolePage, page)
         item.setData(PRoleID, page.get_id())
-        item.setData(Qt.DecorationRole, page.get_image(80, 80))
-        item.setText("text addPage")
+        item.setData(Qt.DecorationRole, page.get_pixmap(80, 80))
+        item.setText(page.name_page)
         self.addItem(item)
 
     def dragLeaveEvent(self, e: QDragLeaveEvent):
@@ -153,15 +153,11 @@ class PageWidget(QListWidget):
         return self.currentItem().data(PRolePage)
 
     def getTextSelected(self):
-        # t_names = []
-        # for item in self.selectedItems():
-        #     if len(item.data(PRoleComment)) > 0:
-        #         t_names.append(f'{item.text()} > {item.data(PRoleComment)}')
-        #     else:
-        #         t_names.append(item.text())
-        #
-        # return ' - '.join(t_names)
-        return 'getTextSelected'
+        t_names = []
+        for item in self.selectedItems():
+            t_names.append(item.data(PRolePage).name_page)
+
+        return ', '.join(t_names)
 
     def getSizeSelected(self):
         size_all = 0

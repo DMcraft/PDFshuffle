@@ -4,14 +4,15 @@ from pathlib import Path
 
 from loguru import logger
 
-VERSION_PROGRAM = '2.6'
-VERSION_DATE = '02/01/2025'
+VERSION_PROGRAM = '2.8'
+VERSION_DATE = '01/07/2025'
 
 FILE_CFG = 'config.ini'
 BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
                   '0': False, 'no': False, 'false': False, 'off': False}
 
 SCALE_SIZE = 240
+MAX_INT = 2 ** 16
 
 ICON_PATH_SHUFFLE = Path.cwd() / 'icons/pdfshuffle.png'
 ICON_PATH_SCANER = Path.cwd() / 'icons/pdfscaner.png'
@@ -106,6 +107,10 @@ PAGE_PAPER_SIZE = _get_value('PAGE', 'papersize', 'A4')
 PAGE_PAPER_ORIENTATION = _get_value('PAGE', 'paperorientation', 'portret')
 PAGE_PAPER_FORMATTING = _get_value('PAGE', 'paperformatting', True)
 PAGE_IMAGE_EXTEND = _get_value('PAGE', 'imageextend', True)
+PAGE_SCALE_WIDTH_EXTEND = _get_value('PAGE', 'scalewidthextend', False)
+PAGE_SCALE_HEIGHT_EXTEND = _get_value('PAGE', 'scaleheightextend', False)
+
+PAGE_IMAGE_SIZE = _get_value('PAGE', 'imageresolution', 720)
 
 CURRENT_PATH = _get_value('FILE', 'current_path', os.path.expanduser('~'))
 SCAN_PATH = _get_value('FILE', 'scan_path', os.path.expanduser('~'))
@@ -135,6 +140,9 @@ def save_config():
     config.set('PAGE', 'paperorientation', PAGE_PAPER_ORIENTATION)
     config.set('PAGE', 'paperformatting', str(PAGE_PAPER_FORMATTING))
     config.set('PAGE', 'imageextend', str(PAGE_IMAGE_EXTEND))
+    config.set('PAGE', 'scalewidthextend', str(PAGE_SCALE_WIDTH_EXTEND))
+    config.set('PAGE', 'scaleheightextend', str(PAGE_SCALE_HEIGHT_EXTEND))
+    config.set('PAGE', 'imageresolution', str(PAGE_IMAGE_SIZE))
 
     config.set('FILE', 'current_path', CURRENT_PATH)
     config.set('FILE', 'scan_path', SCAN_PATH)
