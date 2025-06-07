@@ -2,20 +2,17 @@ import os
 import sys
 from datetime import datetime
 
-from PyQt5.QtGui import QPixmap
-
 import config
 from loguru import logger
-
-from PyQt5.QtCore import QSize, Qt
 
 from pagelist import PageWidget, PRoleID, PRolePage
 from pdfdata import PDFData
 from pdfdata import PDFPage
-from function import calculate_fitted_image_size
 from scaner import ScanerWindow
 from window import Ui_MainWindow
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QPixmap
 from PyQt5 import QtGui, QtCore
 import shortcut
 
@@ -124,15 +121,15 @@ class MyWindow(QMainWindow):
 
         self.ui.actionSavetoImage.triggered.connect(lambda: self.tool_save_to_image(self.pagesBasic))
         self.ui.actionTransformtoImage.triggered.connect(
-            lambda: self.tool_tranform_to_image(self.pagesBasic, self.pagesSecond))
+            lambda: self.tool_transform_to_image(self.pagesBasic, self.pagesSecond))
 
         if not self.restoreGeometry(config.OPTION_WINDOW):
             logger.error(f'Error restore state windows: {config.OPTION_WINDOW}')
         if not self.ui.splitterView.restoreState(config.OPTION_SPLITTER):
             logger.error(f'Error restore state splitter: {config.OPTION_SPLITTER}')
 
-        self.pagesBasic.connectAddFile(self.pressedButtonAdd)
-        self.pagesSecond.connectAddFile(self.pressedButtonAdd)
+        self.pagesBasic.connect_add_file(self.pressedButtonAdd)
+        self.pagesSecond.connect_add_file(self.pressedButtonAdd)
         self.pagesBasic.clicked.connect(lambda: self.clickViewPage(self.pagesBasic))
         self.pagesSecond.clicked.connect(lambda: self.clickViewPage(self.pagesSecond))
 
@@ -157,11 +154,12 @@ class MyWindow(QMainWindow):
         else:
             self.ui.statusbar.showMessage('Отмена сохранения. Каталог не выбран.', 3000)
 
-    def tool_tranform_to_image(self, pages_in: PageWidget, pages_out: PageWidget):
+    @staticmethod
+    def tool_transform_to_image(pages_in: PageWidget, pages_out: PageWidget):
         for item in pages_in:
             image = item.data(PRolePage).get_image(config.MAX_INT, config.PAGE_IMAGE_SIZE,
                                                    keepaspect=False)
-            pages_out.addPage(pdf_storage.add_image_file('', img=image))
+            pages_out.add_page(pdf_storage.add_image_file('', img=image))
 
     def pressed_scale(self, scale=0):
         self.scale_size += scale
@@ -208,8 +206,8 @@ class MyWindow(QMainWindow):
 
         self.ui.lineviewpathfile.setText(page.path)
         self.updatePages()
-        self.ui.statusbar.showMessage(self.current_pages_view.getSizeSelected() +
-                                      '(' + self.current_pages_view.getTextSelected() + ')')
+        self.ui.statusbar.showMessage(self.current_pages_view.get_size_selected() +
+                                      '(' + self.current_pages_view.get_text_selected() + ')')
 
     def updatePages(self):
         self.pagesBasic.setGridSize(QSize())
@@ -218,7 +216,7 @@ class MyWindow(QMainWindow):
     def pressedButtonRestored(self):
         self.pagesBasic.clear()
         for i in range(len(pdf_storage.data)):
-            self.pagesBasic.addPage(pdf_storage.data[i])
+            self.pagesBasic.add_page(pdf_storage.data[i])
 
     def pressedButtonSave(self, pages: PageWidget):
         filename, _ = QFileDialog.getSaveFileName(None, "Save File", self.pathfile,
@@ -239,7 +237,7 @@ class MyWindow(QMainWindow):
 
     def pressedButtonRotate(self, pages: PageWidget):
         if len(pages.selectedItems()) > 0:
-            for _ in pages.rotatePage(90):
+            for _ in pages.rotate_page(90):
                 pass
             self.clickViewPage(pages)
         else:
@@ -270,11 +268,11 @@ class MyWindow(QMainWindow):
                 self.pathfile = os.path.dirname(filename)
                 start_page, end_page = pdf_storage.add_pdf_file(filename)
                 for i in range(start_page, end_page):
-                    pages.addPage(pdf_storage.data[i])
+                    pages.add_page(pdf_storage.data[i])
             elif (filename.lower().endswith('.jpg') or filename.lower().endswith('.png')
                   or filename.lower().endswith('.jpeg')):
                 self.pathfile = os.path.dirname(filename)
-                pages.addPage(pdf_storage.add_image_file(filename))
+                pages.add_page(pdf_storage.add_image_file(filename))
         self.ui.lineviewpath.setText(self.pathfile)
 
     def pressed_tool_save_image(self):
@@ -326,7 +324,7 @@ class MyWindow(QMainWindow):
         if self.ui.comboBoxPaperDPI.findData(dpi) >= 0:
             self.ui.comboBoxPaperDPI.setCurrentIndex(self.ui.comboBoxPaperDPI.findData(dpi))
 
-        self.pagesSecond.addPage(pdf_storage.add_image_file('', img=image))
+        self.pagesSecond.add_page(pdf_storage.add_image_file('', img=image))
 
     def resizeEvent(self, a0: QtGui.QResizeEvent) -> None:
         self.updatePages()
@@ -347,6 +345,7 @@ class MyWindow(QMainWindow):
             self.wScan.close_window.connect(self.close_win_scaner)
             self.wScan.show()
         else:
+            self.wScan.activateWindow()  # Активируем (фокус)
             self.wScan.raise_()
 
     @QtCore.pyqtSlot()

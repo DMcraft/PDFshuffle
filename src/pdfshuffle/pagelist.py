@@ -8,8 +8,6 @@ from pdfdata import PDFPage
 
 PRolePage = Qt.UserRole + 10
 PRoleID = Qt.UserRole + 33
-# PRoleRotate = Qt.UserRole + 34
-# PRoleViewer = Qt.UserRole + 35
 PRoleSize = Qt.UserRole + 37
 PRoleComment = Qt.UserRole + 36
 
@@ -76,7 +74,7 @@ class PageWidget(QListWidget):
         for i in range(self.count()):
             yield self.item(i)
 
-    def addPage(self, page:PDFPage):
+    def add_page(self, page:PDFPage):
         item = QListWidgetItem()
         item.setData(PRolePage, page)
         item.setData(PRoleID, page.get_id())
@@ -131,9 +129,9 @@ class PageWidget(QListWidget):
             QListWidget.keyPressEvent(self, event)
 
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_A:
-            self.message.emit(self.getSizeSelected())
+            self.message.emit(self.get_size_selected())
 
-    def rotatePage(self, angle=90):
+    def rotate_page(self, angle=90):
         angle = angle % 360
         if angle < 0:
             angle = 360 - angle
@@ -149,22 +147,22 @@ class PageWidget(QListWidget):
     def get_current_id(self):
         return self.currentItem().data(PRoleID)
 
-    def get_current_page(self):
+    def get_current_page(self) -> PDFPage:
         return self.currentItem().data(PRolePage)
 
-    def getTextSelected(self):
+    def get_text_selected(self):
         t_names = []
         for item in self.selectedItems():
             t_names.append(item.data(PRolePage).name_page)
 
         return ', '.join(t_names)
 
-    def getSizeSelected(self):
+    def get_size_selected(self):
         size_all = 0
         for item in self.selectedItems():
             size_all += item.data(PRolePage).size
 
         return f'Размер выбранного: {size_all // 1024} кб'
 
-    def connectAddFile(self, func):
+    def connect_add_file(self, func):
         self._func_add_file = func

@@ -57,6 +57,7 @@ def _get_value(section: str, option: str, fallback):
         except ValueError as v:
             logger.error(f'Config value bytes error {option} "{v}"')
             return fallback
+    return None
 
 
 def int_to_bytes(mas: (tuple, list)) -> bytes:

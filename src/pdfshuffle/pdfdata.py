@@ -1,20 +1,21 @@
 import io
 import os
 
-from PyQt5 import QtCore
 from loguru import logger
-
-from PyQt5.QtGui import QImage, QPixmap, QTransform
-from pdf2image import convert_from_path, convert_from_bytes
-from pypdf import PdfReader, PdfWriter, PageObject
-from PIL import Image
-
 import config
 from function import calculate_fitted_image_size
 
+from PyQt5 import QtCore
+from PyQt5.QtGui import QImage, QPixmap, QTransform
+
+from pdf2image import convert_from_bytes
+from pypdf import PdfReader, PdfWriter, PageObject
+from PIL import Image
+
+
+
 
 class PDFPage:
-    # def __init__(self, pix=None, pdf=None, size_data: int = 0):
     def __init__(self, page, name_page: str = '', pathfile: str = '', comment: str = ''):
         self._index = None
         self.pdf: PageObject = page
@@ -154,12 +155,6 @@ class PDFData:
         self._addpage(PDFPage(pdf.pages[0], name_page=f'{self.index_file} Image', pathfile=path))
         return self.last_page()
 
-    def resize_image(self, image, width, height):
-        aspect_ratio = min(width / float(image.size[0]), height / float(image.size[1]))
-        new_width = int(aspect_ratio * image.size[0])
-        new_height = int(aspect_ratio * image.size[1])
-        return image.resize((new_width, new_height), resample=Image.Resampling.BILINEAR)
-
     def get_page(self, id_page=None):
         if not self.data:  # если список пуст
             raise ValueError("self.data is empty!")
@@ -177,3 +172,10 @@ class PDFData:
 
         with open(filename, 'wb') as f:
             output.write(f)
+
+    @staticmethod
+    def resize_image(image, width, height):
+        aspect_ratio = min(width / float(image.size[0]), height / float(image.size[1]))
+        new_width = int(aspect_ratio * image.size[0])
+        new_height = int(aspect_ratio * image.size[1])
+        return image.resize((new_width, new_height), resample=Image.Resampling.BILINEAR)

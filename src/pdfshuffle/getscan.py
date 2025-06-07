@@ -88,7 +88,7 @@ class WorkerDrive(QtCore.QObject):
             # Initialize sane
             try:
                 self.version = sane.init()
-                self.message.emit('Sane initial completed...', self.version)
+                self.message_signal.emit('Sane initial completed...', self.version)
             except (RuntimeError, sane._sane.error) as err:
                 self.message_signal.emit('Error sane initial!!!', err)
                 return None
@@ -98,8 +98,12 @@ class WorkerDrive(QtCore.QObject):
             try:
                 devices = sane.get_devices()
                 self.devices_signal.emit(f'Sane version {self.version[0]}', devices)
+                return None
             except (RuntimeError, sane._sane.error) as err:
                 self.message_signal.emit('Error getting list devices...', err)
+                return None
+
+        return None
 
     @QtCore.pyqtSlot(dict)
     @_locker
