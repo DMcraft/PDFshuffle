@@ -28,6 +28,16 @@ class PDFPage:
         self.name_page = name_page
         self.comment = comment
 
+    def copy(self):
+        page_copy = PageObject.create_blank_page(
+            width=self.pdf.mediabox.width,
+            height=self.pdf.mediabox.height
+        )
+        page_copy.merge_page(self.pdf)
+        new_page = PDFPage(page_copy, self.name_page, self.path, self.comment)
+
+        return new_page
+
     def get_id(self):
         if self._index is None:
             return 0

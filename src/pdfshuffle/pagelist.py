@@ -111,6 +111,11 @@ class PageWidget(QListWidget):
                     source.takeItem(source.row(item))
                 else:
                     item = item.clone()
+                    page = self.get_page(item).copy()
+                    self._pdf._addpage(page)
+                    item.setData(PRoleID, page.get_id())
+                    item.setData(Qt.DecorationRole, page.get_pixmap(80, 80))
+
                 # Добавляем элемент в текущий список
                 row = self.row(self.itemAt(event.pos()))
                 if row < 0:
