@@ -148,8 +148,10 @@ class PageWidget(QListWidget):
         return self.currentItem().data(PRoleID)
 
     def get_current_page(self) -> PDFPage:
-        logger.debug("Deprecated get_current_page...")
         return self._pdf.get_page(self.currentItem().data(PRoleID))
+
+    def get_page(self, item) -> PDFPage:
+        return self._pdf.get_page(item.data(PRoleID))
 
     def get_text_selected(self):
         t_names = []

@@ -46,10 +46,10 @@ class MyWindow(QMainWindow):
             self.ui.comboBoxOrientation.findText(config.PAGE_PAPER_ORIENTATION))
 
         self.ui.lineviewpath.setText(self.pathfile)
-        self.ui.toolButtonPathFile.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineviewpath.text()}"'))
+        self.ui.toolButtonPathFile.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineviewpathfile.text()}"'))
 
         self.ui.lineviewpathfile.setText(self.pathfile)
-        self.ui.toolButtonPath.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineviewpathfile.text()}"'))
+        self.ui.toolButtonPath.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineviewpath.text()}"'))
 
         self.ui.comboBoxPaperDPI.addItem('75 dpi', 75)
         self.ui.comboBoxPaperDPI.addItem('100 dpi', 100)
@@ -148,7 +148,7 @@ class MyWindow(QMainWindow):
         if filedir:
             for i, item in enumerate(pages, 1):
                 filename = os.path.join(filedir, f'save_img-{today}_{i + 1:03}.jpg')
-                page: PDFPage = item.data(PRolePage)
+                page: PDFPage = pages.get_page(item)
                 page.save_image_as(filename, config.PAGE_IMAGE_SIZE, quality=config.PAGE_QUALITY,
                                    dpi=config.PAGE_PAPER_DPI)
         else:
@@ -157,7 +157,7 @@ class MyWindow(QMainWindow):
     @staticmethod
     def tool_transform_to_image(pages_in: PageWidget, pages_out: PageWidget):
         for item in pages_in:
-            image = item.data(PRolePage).get_image(config.MAX_INT, config.PAGE_IMAGE_SIZE,
+            image = pages_in.get_page(item).get_image(config.MAX_INT, config.PAGE_IMAGE_SIZE,
                                                    keepaspect=False)
             pages_out.add_page(pdf_storage.add_image_file('', img=image))
 
