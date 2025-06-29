@@ -5,7 +5,7 @@ from datetime import datetime
 import config
 from loguru import logger
 
-from pagelist import PageWidget, PRoleID, PRolePage
+from pagelist import PageWidget, PRoleID
 from pdfdata import PDFData
 from pdfdata import PDFPage
 from scaner import ScanerWindow
@@ -68,9 +68,9 @@ class MyWindow(QMainWindow):
         self.ui.checkBoxImageFormatting.setChecked(config.PAGE_PAPER_FORMATTING)
         self.ui.checkBoxImageExtend.setChecked(config.PAGE_IMAGE_EXTEND)
 
-        self.pagesBasic = PageWidget(self.ui.centralwidget)
+        self.pagesBasic = PageWidget(self.ui.centralwidget, pdf_storage)
         self.ui.BasicLayout.addWidget(self.pagesBasic)
-        self.pagesSecond = PageWidget(self.ui.centralwidget)
+        self.pagesSecond = PageWidget(self.ui.centralwidget, pdf_storage)
         self.ui.SecondLayout.addWidget(self.pagesSecond)
 
         self.ui.spinquality.valueChanged.connect(self.changedSpinQuality)
@@ -178,8 +178,8 @@ class MyWindow(QMainWindow):
         elif self.current_pages_view is None:
             return
 
-        page:PDFPage = self.current_pages_view.get_current_page()
-
+        id_page = self.current_pages_view.get_current_id()
+        page: PDFPage = pdf_storage.get_page(id_page)
         width_cm = (page.pdf.mediabox.width / 72) * 2.54
         height_cm = (page.pdf.mediabox.height / 72) * 2.54
 

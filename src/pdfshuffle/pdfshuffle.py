@@ -19,6 +19,24 @@ from loguru import logger
 from os import environ
 import shuffle
 
+# import sys
+# from PyQt5.QtGui import QPixmap
+#
+# # Добавьте в начало main.py
+# sys.modules['PyQt5.QtGui'].QPixmap.__reduce__ = lambda self: (QPixmap, (None,))
+
+import sys
+import traceback
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def excepthook(exc_type, exc_value, exc_tb):
+    tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    logging.critical(f"Unhandled exception:\n{tb}")
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+sys.excepthook = excepthook
 
 if __name__ == '__main__':
     if environ.get('PRODUCTION') is None:

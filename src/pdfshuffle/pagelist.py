@@ -5,8 +5,8 @@ from PyQt5.QtGui import QKeySequence, QDragEnterEvent, QColor, QFont, QPixmap, Q
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QStyledItemDelegate, QStyle
 
 from pdfdata import PDFPage
+from pdfdata import PDFData
 
-PRolePage = Qt.UserRole + 10
 PRoleID = Qt.UserRole + 33
 PRoleSize = Qt.UserRole + 37
 PRoleComment = Qt.UserRole + 36
@@ -57,10 +57,11 @@ class PageWidget(QListWidget):
 
     message = QtCore.pyqtSignal(str)
 
-    def __init__(self, wg):
+    def __init__(self, wg, pdf:PDFData):
         super().__init__(wg)
 
         self._func_add_file = None
+        self._pdf:PDFData = pdf
 
         self.setWrapping(True)
         self.setAcceptDrops(True)
@@ -76,7 +77,6 @@ class PageWidget(QListWidget):
 
     def add_page(self, page:PDFPage):
         item = QListWidgetItem()
-        item.setData(PRolePage, page)
         item.setData(PRoleID, page.get_id())
         item.setData(Qt.DecorationRole, page.get_pixmap(80, 80))
         item.setText(page.name_page)
@@ -139,7 +139,7 @@ class PageWidget(QListWidget):
             trans_rotate = QTransform().rotate(angle)
             for item in self.selectedItems():
                 item.setData(Qt.DecorationRole, QPixmap(item.data(Qt.DecorationRole).transformed(trans_rotate)))
-                item.data(PRolePage).rotate(angle)
+                self._pdf.get_page(item.data(PRoleID)).rotate(angle)
                 yield item.data(PRoleID)
         else:
             raise ValueError('Rotate page may be angle 0, 90, 180, 270')
@@ -148,19 +148,20 @@ class PageWidget(QListWidget):
         return self.currentItem().data(PRoleID)
 
     def get_current_page(self) -> PDFPage:
-        return self.currentItem().data(PRolePage)
+        logger.debug("Deprecated get_current_page...")
+        return self._pdf.get_page(self.currentItem().data(PRoleID))
 
     def get_text_selected(self):
         t_names = []
         for item in self.selectedItems():
-            t_names.append(item.data(PRolePage).name_page)
+            t_names.append(self._pdf.get_page(item.data(PRoleID)).name_page)
 
         return ', '.join(t_names)
 
     def get_size_selected(self):
         size_all = 0
         for item in self.selectedItems():
-            size_all += item.data(PRolePage).size
+            size_all += self._pdf.get_page(item.data(PRoleID)).size
 
         return f'Размер выбранного: {size_all // 1024} кб'
 

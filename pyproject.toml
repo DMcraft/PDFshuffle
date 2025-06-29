@@ -1,5 +1,5 @@
-[tool.poetry.requires-plugins]
-poetry-plugin-export = ">=1.8"
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel>=0.40.0"]
 
 [project]
 authors = [
@@ -18,5 +18,3 @@ name = "pdfshuffle"
 version = "2.4.0"
 description = ""
 
-[project.requires-plugins]
-poetry-plugin-export = ">=1.8"
