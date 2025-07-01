@@ -7,8 +7,7 @@ from function import calculate_fitted_image_size
 
 from PyQt5 import QtCore
 from PyQt5.QtGui import QImage, QPixmap, QTransform
-
-from pdf2image import convert_from_bytes
+from pdf2image import convert_from_path, convert_from_bytes
 from pypdf import PdfReader, PdfWriter, PageObject
 from PIL import Image
 
@@ -16,13 +15,13 @@ from PIL import Image
 
 
 class PDFPage:
-    def __init__(self, page, name_page: str = '', pathfile: str = '', comment: str = ''):
+    def __init__(self, page, pix: QPixmap = None,
+                 name_page: str = '', pathfile: str = '', comment: str = ''):
         self._index = None
         self.pdf: PageObject = page
         self.size = 0
 
-        self.pix: QPixmap = None
-        self.reload_pixmap()
+        self.pix: QPixmap = pix
 
         self.path = pathfile
         self.name_page = name_page
@@ -57,14 +56,18 @@ class PDFPage:
         return images[0]
 
     def get_pixmap(self, width: int = 0, height: int = 0) -> Image:
+        if self.pix is None:
+            self._reload_pixmap()
+            return self.pix.scaled(width, height, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+
         width_scale, height_scale = calculate_fitted_image_size(self.pix.width(), self.pix.height(),
                                                                 width, height)
         if width_scale > self.pix.width() or height_scale > self.pix.height():
-            self.reload_pixmap(max(width_scale, self.pix.width()), max(height_scale, self.pix.height()))
+            self._reload_pixmap(max(width_scale, self.pix.width()), max(height_scale, self.pix.height()))
 
         return self.pix.scaled(width_scale, height_scale, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
 
-    def reload_pixmap(self, width: int = 0, height: int = 0):
+    def _reload_pixmap(self, width: int = 0, height: int = 0):
         if width == 0 and height == 0:
             height = config.SCALE_SIZE
         else:
@@ -74,7 +77,7 @@ class PDFPage:
                 height = ((height + config.SCALE_SIZE - 1) // config.SCALE_SIZE) * config.SCALE_SIZE
         width_scale, height_scale = calculate_fitted_image_size(self.pdf.mediabox.width, self.pdf.mediabox.height,
                                                                 0, height, extend=True)
-        logger.info(f'Reload scale: w{width_scale} х h{height_scale}')
+        logger.debug(f'Reload scale: w{width_scale} х h{height_scale}')
         image = self.get_image(width_scale or None, height_scale or None)
         # format to pixmap
         image_pix = image.convert("RGB")
@@ -121,6 +124,7 @@ class PDFData:
     def _addpage(self, page):
         page._index = len(self.data)
         self.data.append(page)
+        logger.debug(f'Add page # {page._index}')
 
     def last_page(self):
         if len(self.data) > 0:
@@ -129,12 +133,25 @@ class PDFData:
 
     def add_pdf_file(self, filename):
         start_page = len(self.data)
+        logger.debug("Start convert images size (80)...")
+        images = convert_from_path(filename, size=(None, 80))
+        logger.debug(f"End convert images len - {len(images)}")
+
         pdf = PdfReader(filename)
         path = os.path.dirname(filename)
         self.index_file += 1
         for i in range(len(pdf.pages)):
-            self._addpage(PDFPage(pdf.pages[i], name_page=f'{self.index_file} p{i + 1}',
+            if i < len(images):
+                im = images[i].convert("RGB")
+                data = im.tobytes("raw", "RGB")
+                qi = QImage(data, im.size[0], im.size[1], im.size[0] * 3, QImage.Format.Format_RGB888)
+                pixmap = QPixmap.fromImage(qi)
+            else:
+                pixmap = None
+            self._addpage(PDFPage(pdf.pages[i], pixmap,
+                                  name_page=f'{self.index_file} p{i + 1}',
                                   pathfile=path))
+
         return start_page, len(self.data)
 
     def add_image_file(self, filename='', img=None):
