@@ -1,5 +1,3 @@
-
-
 def calculate_fitted_image_size(image_width: int, image_height: int,
                                 window_width: int = 0, window_height: int = 0,
                                 extend: bool = False

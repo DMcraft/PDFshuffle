@@ -12,8 +12,6 @@ from pypdf import PdfReader, PdfWriter, PageObject
 from PIL import Image
 
 
-
-
 class PDFPage:
     def __init__(self, page, pix: QPixmap = None,
                  name_page: str = '', pathfile: str = '', comment: str = ''):
@@ -33,7 +31,7 @@ class PDFPage:
             height=self.pdf.mediabox.height
         )
         page_copy.merge_page(self.pdf)
-        new_page = PDFPage(page_copy, self.name_page, self.path, self.comment)
+        new_page = PDFPage(page_copy, None, self.name_page, self.path, self.comment)
 
         return new_page
 
@@ -43,8 +41,8 @@ class PDFPage:
         else:
             return self._index
 
-    def get_image(self, width, height, keepaspect: bool = True):
-        if not keepaspect:
+    def get_image(self, width, height, keep_aspect: bool = True):
+        if not keep_aspect:
             width, height = calculate_fitted_image_size(self.pix.width(), self.pix.height(), width, height)
         byte_arr = io.BytesIO()
         output = PdfWriter()
@@ -118,7 +116,6 @@ class PDFData:
             cls._instance = super().__new__(cls)
             cls._instance.data = []  # Список страниц PDF
             cls._instance.index_file = 0  # Номер загружаемого файла
-            # cls._instance.pdf_read = []  # Дополнительные данные (если нужны)
         return cls._instance
 
     def _addpage(self, page):

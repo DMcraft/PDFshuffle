@@ -12,7 +12,6 @@ PRoleSize = Qt.UserRole + 37
 PRoleComment = Qt.UserRole + 36
 
 
-
 class PageDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         img: QPixmap = index.model().data(index, Qt.DecorationRole)
@@ -54,14 +53,13 @@ class PageDelegate(QStyledItemDelegate):
 
 
 class PageWidget(QListWidget):
-
     message = QtCore.pyqtSignal(str)
 
-    def __init__(self, wg, pdf:PDFData):
+    def __init__(self, wg, pdf: PDFData):
         super().__init__(wg)
 
         self._func_add_file = None
-        self._pdf:PDFData = pdf
+        self._pdf: PDFData = pdf
 
         self.setWrapping(True)
         self.setAcceptDrops(True)
@@ -75,7 +73,7 @@ class PageWidget(QListWidget):
         for i in range(self.count()):
             yield self.item(i)
 
-    def add_page(self, page:PDFPage):
+    def add_page(self, page: PDFPage):
         item = QListWidgetItem()
         item.setData(PRoleID, page.get_id())
         item.setData(Qt.DecorationRole, page.get_pixmap(80, 80))
@@ -101,7 +99,7 @@ class PageWidget(QListWidget):
             for f in event.mimeData().urls():
                 if f.isLocalFile() and self._func_add_file is not None:
                     self._func_add_file(self, f.toLocalFile())
-                logger.info(f'Resive mime: {f}')
+                logger.info(f'Receive mime: {f}')
         if event.mimeData().hasFormat('application/x-qabstractitemmodeldatalist'):
             items = event.source().selectedItems()
             source = event.source()

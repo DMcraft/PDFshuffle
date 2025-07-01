@@ -43,6 +43,7 @@ class ConfigString:
             return self._data
         elif isinstance(self._data, list):
             return ','.join(self._data)
+        raise TypeError("Not equal type objects to str")
 
     def __eq__(self, y):
         if isinstance(y, type(self._data)):

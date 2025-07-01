@@ -1,8 +1,6 @@
 import time
 import sane
-
 from loguru import logger
-
 from PyQt5 import QtCore
 
 
@@ -32,7 +30,7 @@ class WorkerDrive(QtCore.QObject):
         self.version = None
         self.lock = False
 
-    def isReady(self):
+    def is_ready(self):
         if self.lock:
             return False
         else:
@@ -48,6 +46,7 @@ class WorkerDrive(QtCore.QObject):
             self.message_signal.emit('Error sane initial!!!', err)
             return None
         logger.info('Initial SANE completed.')
+        return None
 
     # [(0, 'option-cnt', 'Number of options', 'Read-only option that specifies how many options a specific devices supports.', 1, 0, 4, 4, None),
     #  (1, 'mode-group', 'Scan mode', None, 5, 0, 0, 0, None),
@@ -109,7 +108,6 @@ class WorkerDrive(QtCore.QObject):
     @_locker
     def scaner(self, param):
         logger.info(f'Start scaner proces {param}')
-        # QtCore.QThread.msleep(3000)
         try:
             dev = sane.open(param['device'])
         except (RuntimeError, sane._sane.error) as err:

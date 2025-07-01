@@ -1,9 +1,9 @@
 import os
 import sys
 from datetime import datetime
+from loguru import logger
 
 import config
-from loguru import logger
 
 from pagelist import PageWidget, PRoleID
 from pdfdata import PDFData
@@ -133,12 +133,11 @@ class MyWindow(QMainWindow):
         self.pagesBasic.clicked.connect(lambda: self.clickViewPage(self.pagesBasic))
         self.pagesSecond.clicked.connect(lambda: self.clickViewPage(self.pagesSecond))
 
-        self.pagesBasic.message.connect(self.setMessage)
-        self.pagesSecond.message.connect(self.setMessage)
-
+        self.pagesBasic.message.connect(self.set_message)
+        self.pagesSecond.message.connect(self.set_message)
 
     @QtCore.pyqtSlot(str)
-    def setMessage(self, text):
+    def set_message(self, text):
         self.ui.statusbar.showMessage(text)
 
     def tool_save_to_image(self, pages: PageWidget):
@@ -158,7 +157,7 @@ class MyWindow(QMainWindow):
     def tool_transform_to_image(pages_in: PageWidget, pages_out: PageWidget):
         for item in pages_in:
             image = pages_in.get_page(item).get_image(config.MAX_INT, config.PAGE_IMAGE_SIZE,
-                                                   keepaspect=False)
+                                                      keep_aspect=False)
             pages_out.add_page(pdf_storage.add_image_file('', img=image))
 
     def pressed_scale(self, scale=0):
@@ -170,8 +169,7 @@ class MyWindow(QMainWindow):
         self.clickViewPage()
         self.ui.lineEditScale.setText(f'{self.scale_size / config.SCALE_SIZE}x')
 
-
-    def clickViewPage(self, pages: PageWidget  = None):
+    def clickViewPage(self, pages: PageWidget = None):
         logger.info(pages)
         if pages is not None and pages is not self.current_pages_view:
             self.current_pages_view = pages
@@ -201,7 +199,7 @@ class MyWindow(QMainWindow):
         self.ui.status_image_size.setText(f'pdf ({width_cm:.1f} см, {height_cm:.1f} см), '
                                           f'loud ({page.pix.width()}, {page.pix.height()}), '
                                           f'scr ({pix_scaled.width()}, {pix_scaled.height()}), '
-                                          f'size {page.size// 1024} Кб'
+                                          f'size {page.size // 1024} Кб'
                                           )
 
         self.ui.lineviewpathfile.setText(page.path)

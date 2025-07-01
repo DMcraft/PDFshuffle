@@ -7,14 +7,16 @@ authors = [
 ]
 requires-python = "<4.0,>=3.9"
 dependencies = [
-    "PyQt5==5.15.2",
+    "pyqt5==5.15.11",
     "pdf2image<2.0.0,>=1.16.3",
     "loguru<1.0.0,>=0.7.1",
-    "pytest<8.0.0,>=7.4.2",
+    "pytest==8.4.1",
     "python-sane<3.0.0,>=2.9.1",
-    "pypdf<6.0.0,>=5.1.0",
+    "pypdf==5.7.0",
+    "pillow==11.3.0",
+    "typing-extensions==4.14.0",
 ]
 name = "pdfshuffle"
-version = "2.4.0"
-description = ""
+version = "2.9.0"
+description = "Sorting page from PDF files"
 

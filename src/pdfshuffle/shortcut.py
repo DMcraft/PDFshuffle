@@ -87,6 +87,7 @@ def create_desktop_entry(name: str, file_name: Union[Path, str], icon: Union[Pat
                     fp.write(s)
                     fp.write('\n')
             file_path.chmod(0o755)
+        return None
 
     else:
         return ERROR_NOT_FIND_MAIN_FILE

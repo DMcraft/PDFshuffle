@@ -4,8 +4,8 @@ from pathlib import Path
 
 from loguru import logger
 
-VERSION_PROGRAM = '2.8'
-VERSION_DATE = '01/07/2025'
+VERSION_PROGRAM = '2.9'
+VERSION_DATE = '01/08/2025'
 
 FILE_CFG = 'config.ini'
 BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
@@ -17,6 +17,7 @@ MAX_INT = 2 ** 16
 ICON_PATH_SHUFFLE = Path.cwd() / 'icons/pdfshuffle.png'
 ICON_PATH_SCANER = Path.cwd() / 'icons/pdfscaner.png'
 logger.debug(ICON_PATH_SHUFFLE)
+
 
 def _int_value(s: str) -> int:
     try:

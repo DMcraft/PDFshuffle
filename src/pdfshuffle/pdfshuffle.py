@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-#----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Created By  : Dmitriy Aldunin @DMcraft
 # Created Date: 04/10/2023
-# version ='2.4.1'
+# version ='2.9'
 # Copyright 2023 Dmitriy Aldunin
 # Licensed under the Apache License, Version 2.0
 # ---------------------------------------------------------------------------
@@ -31,18 +31,6 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
     print('Start program...')
-
-    logging.debug("A DEBUG Message")
-    logging.info("An INFO")
-    logging.warning("A WARNING")
-    logging.error("An ERROR")
-    logging.critical("A message of CRITICAL severity")
-
-    logger.debug("loguru - A DEBUG Message")
-    logger.info("loguru - An INFO")
-    logger.warning("loguru - A WARNING")
-    logger.error("loguru - An ERROR")
-    logger.critical("loguru - A message of CRITICAL severity")
 
     shuffle.main()
 
