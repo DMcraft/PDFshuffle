@@ -144,6 +144,7 @@ class MyWindow(QMainWindow):
         filedir = QFileDialog.getExistingDirectory(None, "Save Images to directory", self.pathfile,
                                                    QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
         today = datetime.today().strftime('%Y%m%d%H%M%S')
+        # todo Добавить либо все страницы, либо только выделенные
         if filedir:
             for i, item in enumerate(pages, 1):
                 filename = os.path.join(filedir, f'save_img-{today}_{i + 1:03}.jpg')
@@ -274,6 +275,10 @@ class MyWindow(QMainWindow):
         self.ui.lineviewpath.setText(self.pathfile)
 
     def pressed_tool_save_image(self):
+        if self.current_pages_view is None:
+            self.ui.statusbar.showMessage('Не выбрано изображения для сохранения', 1500)
+            return
+
         filename, _ = QFileDialog.getSaveFileName(None, "Save Image File", self.pathfile,
                                                   "JPG Files (*.jpg)")
         if filename:
@@ -281,11 +286,10 @@ class MyWindow(QMainWindow):
             if not filename.lower().endswith('.jpg'):
                 filename += '.jpg'
 
-            pdf_storage.save_image_as(self.current_pages_view.get_current_id(), filename,
-                                      self.scale_size,
-                                      config.PAGE_QUALITY,
-                                      config.PAGE_PAPER_DPI)
-
+            pdf_storage.get_page(self.current_pages_view.get_current_id()
+                ).save_image_as(
+                filename, self.scale_size,
+                config.PAGE_QUALITY, config.PAGE_PAPER_DPI)
         else:
             self.ui.statusbar.showMessage('Отмена сохранения. Файл не выбран.', 3000)
         self.ui.lineviewpath.setText(self.pathfile)
