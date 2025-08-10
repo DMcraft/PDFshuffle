@@ -157,17 +157,23 @@ class PDFData:
 
         img_byte_arr = io.BytesIO()
 
+        # Конвертируем RGBA в RGB с белым фоном
+        if img.mode == 'RGBA':
+            white_bg = Image.new('RGB', img.size, (255, 255, 255))  # Создаем белый фон
+            white_bg.paste(img, mask=img.split()[3])  # Вставляем изображение с учетом альфа-канала
+            img = white_bg
+
         if config.PAGE_PAPER_FORMATTING:
             page_size = config.get_size_page()
             canvas_image = Image.new(mode='RGB', size=page_size, color=config.PAGE_BACKGROUND_COLOR)
             if config.PAGE_IMAGE_EXTEND:
                 image_pdf = self.resize_image(img, page_size[0], page_size[1]).convert("RGB")
             else:
-                image_pdf = img
+                image_pdf = img.convert("RGB")
             canvas_image.paste(image_pdf,
                                box=((page_size[0] - image_pdf.size[0]) // 2, (page_size[1] - image_pdf.size[1]) // 2))
         else:
-            canvas_image = img
+            canvas_image = img.convert("RGB")
 
         logger.info(f'PAGE_QUALITY {config.PAGE_QUALITY}, PAGE_PAPER_DPI {config.PAGE_PAPER_DPI}')
 
