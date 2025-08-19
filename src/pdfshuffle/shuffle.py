@@ -30,7 +30,7 @@ class MyWindow(QMainWindow):
         self.status_viewer = 0
         self.pathfile = config.CURRENT_PATH
         self.current_pages_view: PageWidget = None
-        self.scale_size = config.SCALE_SIZE
+        self.scale_size = config.SCALE_SIZE * 3
 
         # Set up the UI
         self.ui = Ui_MainWindow()
@@ -45,11 +45,15 @@ class MyWindow(QMainWindow):
             0 if self.ui.comboBoxOrientation.findText(config.PAGE_PAPER_ORIENTATION) < 0 else
             self.ui.comboBoxOrientation.findText(config.PAGE_PAPER_ORIENTATION))
 
+        self.ui.lineEditScale.setText(f'{self.scale_size / config.SCALE_SIZE}x')
+
         self.ui.lineviewpath.setText(self.pathfile)
         self.ui.toolButtonPathFile.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineviewpathfile.text()}"'))
 
         self.ui.lineviewpathfile.setText(self.pathfile)
         self.ui.toolButtonPath.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineviewpath.text()}"'))
+
+        self.ui.toolButtonCopyPath.clicked.connect(lambda: self.ui.lineviewpath.setText(self.ui.lineviewpathfile.text()))
 
         self.ui.comboBoxPaperDPI.addItem('75 dpi', 75)
         self.ui.comboBoxPaperDPI.addItem('100 dpi', 100)
@@ -120,8 +124,11 @@ class MyWindow(QMainWindow):
         self.ui.actionScan.triggered.connect(self.winScaner)
 
         self.ui.actionSavetoImage.triggered.connect(lambda: self.tool_save_to_image(self.pagesBasic))
+        self.ui.actionSaveSelectedtoImage.triggered.connect(lambda: self.tool_save_to_image(self.pagesBasic, selected=True))
         self.ui.actionTransformtoImage.triggered.connect(
             lambda: self.tool_transform_to_image(self.pagesBasic, self.pagesSecond))
+        self.ui.actionTransformSelectedtoImage.triggered.connect(
+            lambda: self.tool_transform_to_image(self.pagesBasic, self.pagesSecond, selected=True))
 
         if not self.restoreGeometry(config.OPTION_WINDOW):
             logger.error(f'Error restore state windows: {config.OPTION_WINDOW}')
@@ -140,23 +147,32 @@ class MyWindow(QMainWindow):
     def set_message(self, text):
         self.ui.statusbar.showMessage(text)
 
-    def tool_save_to_image(self, pages: PageWidget):
+    def tool_save_to_image(self, pages: PageWidget, selected=False):
         filedir = QFileDialog.getExistingDirectory(None, "Save Images to directory", self.pathfile,
                                                    QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
         today = datetime.today().strftime('%Y%m%d%H%M%S')
-        # todo Добавить либо все страницы, либо только выделенные
         if filedir:
-            for i, item in enumerate(pages, 1):
-                filename = os.path.join(filedir, f'save_img-{today}_{i + 1:03}.jpg')
+            # Определяем источник элементов (все или выделенные)
+            items_source = pages.selected_items() if selected else pages
+
+            for i, item in enumerate(items_source, 1):
+                filename = os.path.join(filedir, f'save_img-{today}_{i:03}.jpg')
                 page: PDFPage = pages.get_page(item)
-                page.save_image_as(filename, config.PAGE_IMAGE_SIZE, quality=config.PAGE_QUALITY,
-                                   dpi=config.PAGE_PAPER_DPI)
+                page.save_image_as(
+                    filename,
+                    config.PAGE_IMAGE_SIZE,
+                    quality=config.PAGE_QUALITY,
+                    dpi=config.PAGE_PAPER_DPI
+                )
         else:
             self.ui.statusbar.showMessage('Отмена сохранения. Каталог не выбран.', 3000)
 
     @staticmethod
-    def tool_transform_to_image(pages_in: PageWidget, pages_out: PageWidget):
-        for item in pages_in:
+    def tool_transform_to_image(pages_in: PageWidget, pages_out: PageWidget, selected=False):
+        # Определяем источник элементов (все или выделенные)
+        items_source = pages_in.selected_items() if selected else pages_in
+
+        for item in items_source:
             image = pages_in.get_page(item).get_image(config.MAX_INT, config.PAGE_IMAGE_SIZE,
                                                       keep_aspect=False)
             pages_out.add_page(pdf_storage.add_image_file('', img=image))
@@ -219,7 +235,7 @@ class MyWindow(QMainWindow):
 
     def pressedButtonSave(self, pages: PageWidget):
         filename, _ = QFileDialog.getSaveFileName(None, "Save File", self.pathfile,
-                                                  "PDF Files (*.pdf)")
+                                                  "PDF Files (*.pdf *.PDF)")
         if filename:
             self.pathfile = os.path.dirname(filename)
             if not filename.lower().endswith('.pdf'):
@@ -280,7 +296,7 @@ class MyWindow(QMainWindow):
             return
 
         filename, _ = QFileDialog.getSaveFileName(None, "Save Image File", self.pathfile,
-                                                  "JPG Files (*.jpg)")
+                                                  "JPG Files (*.jpg *.JPEG)")
         if filename:
             self.pathfile = os.path.dirname(filename)
             if not filename.lower().endswith('.jpg'):

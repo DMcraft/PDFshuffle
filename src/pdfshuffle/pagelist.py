@@ -1,20 +1,55 @@
 from loguru import logger
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QKeySequence, QDragEnterEvent, QColor, QFont, QPixmap, QTransform, QDragLeaveEvent
+from PyQt5.QtCore import Qt, QSize, QPoint, QRect
+from PyQt5.QtGui import QKeySequence, QDragEnterEvent, QColor, QFont, QPixmap, QTransform, QDragLeaveEvent, QPolygon, \
+    QBrush, QPainter
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QStyledItemDelegate, QStyle
 
 from pdfdata import PDFPage
 from pdfdata import PDFData
 
 PRoleID = Qt.UserRole + 33
-PRoleSize = Qt.UserRole + 37
+PRolePage = Qt.UserRole + 34
 PRoleComment = Qt.UserRole + 36
 
 
 class PageDelegate(QStyledItemDelegate):
+    @staticmethod
+    def draw_indicator(
+        painter: QPainter,
+        rect: QRect,
+        indicator_type: str = "red",
+        position: int = 0
+    ):
+        painter.save()
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        circle_radius = 8  # Радиус круга (в пикселях)
+
+        # Выбираем цвет в зависимости от типа индикатора
+        colors = {
+            "red": QColor(255, 0, 0),
+            "orange": QColor(255, 165, 0),
+            "green": QColor(0, 255, 0),
+        }
+        color = colors.get(indicator_type, QColor(255, 0, 0))  # По умолчанию красный
+
+        # Вычисляем координаты круга
+        circle_x = rect.left() + circle_radius + 5 + circle_radius * 3 * position  # Отступ от правого края
+        circle_y = rect.top() + circle_radius + 5  # По центру по вертикали
+
+        # Рисуем круг
+        painter.setBrush(QBrush(color))
+        painter.setPen(Qt.NoPen)
+        painter.drawEllipse(circle_x, circle_y, circle_radius, circle_radius)
+
+        painter.restore()
+
+
+
     def paint(self, painter, option, index):
         img: QPixmap = index.model().data(index, Qt.DecorationRole)
+        page: PDFPage = index.model().data(index, PRolePage)
         x0, y0, x1, y1 = option.rect.getRect()
 
         if option.state & QStyle.State_Selected:
@@ -33,6 +68,9 @@ class PageDelegate(QStyledItemDelegate):
                 img = img.scaledToHeight(80)
             w, h = img.width(), img.height()
             painter.drawPixmap(QtCore.QRect(x0 + (x1 - w) // 2, y0 + (y1 - h) // 2 - 15, w, h), img)
+
+        if page.size == 0:
+            self.draw_indicator(painter, option.rect, "orange")
 
         # Подпись
         txt = index.data()
@@ -73,9 +111,15 @@ class PageWidget(QListWidget):
         for i in range(self.count()):
             yield self.item(i)
 
+    def selected_items(self):
+        """Итератор по выделенным элементам"""
+        for item in self.selectedItems():
+            yield item
+
     def add_page(self, page: PDFPage):
         item = QListWidgetItem()
         item.setData(PRoleID, page.get_id())
+        item.setData(PRolePage, page)
         item.setData(Qt.DecorationRole, page.get_pixmap(80, 80))
         item.setText(page.name_page)
         self.addItem(item)
@@ -112,6 +156,7 @@ class PageWidget(QListWidget):
                     page = self.get_page(item).copy()
                     self._pdf._addpage(page)
                     item.setData(PRoleID, page.get_id())
+                    item.setData(PRolePage, page)
                     item.setData(Qt.DecorationRole, page.get_pixmap(80, 80))
 
                 # Добавляем элемент в текущий список
