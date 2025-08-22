@@ -4,8 +4,8 @@ from pathlib import Path
 
 from loguru import logger
 
-VERSION_PROGRAM = '2.9'
-VERSION_DATE = '01/08/2025'
+VERSION_PROGRAM = '2.10'
+VERSION_DATE = '22/08/2025'
 
 FILE_CFG = 'config.ini'
 BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
@@ -106,7 +106,7 @@ PAGE_BACKGROUND_COLOR = _get_value('PAGE', 'background_color', 'white')
 PAGE_PAPER_DPI = _get_value('PAGE', 'paper_dpi', 200)
 PAGE_QUALITY = _get_value('PAGE', 'quality', 90)
 PAGE_PAPER_SIZE = _get_value('PAGE', 'papersize', 'A4')
-PAGE_PAPER_ORIENTATION = _get_value('PAGE', 'paperorientation', 'portret')
+PAGE_PAPER_ORIENTATION = _get_value('PAGE', 'paperorientation', 'portrait')
 PAGE_PAPER_FORMATTING = _get_value('PAGE', 'paperformatting', True)
 PAGE_IMAGE_EXTEND = _get_value('PAGE', 'imageextend', True)
 PAGE_SCALE_WIDTH_EXTEND = _get_value('PAGE', 'scalewidthextend', False)

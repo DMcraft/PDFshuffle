@@ -1,7 +1,7 @@
 from loguru import logger
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QSize, QPoint, QRect
-from PyQt5.QtGui import QKeySequence, QDragEnterEvent, QColor, QFont, QPixmap, QTransform, QDragLeaveEvent, QPolygon, \
+from PyQt5.QtGui import QKeySequence, QDragEnterEvent, QColor, QFont, QPixmap, QTransform, QDragLeaveEvent, \
     QBrush, QPainter
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QStyledItemDelegate, QStyle
 
@@ -9,11 +9,15 @@ from pdfdata import PDFPage
 from pdfdata import PDFData
 
 PRoleID = Qt.UserRole + 33
-PRolePage = Qt.UserRole + 34
 PRoleComment = Qt.UserRole + 36
 
 
 class PageDelegate(QStyledItemDelegate):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._pdf = PDFData()
+
     @staticmethod
     def draw_indicator(
         painter: QPainter,
@@ -48,8 +52,9 @@ class PageDelegate(QStyledItemDelegate):
 
 
     def paint(self, painter, option, index):
+
         img: QPixmap = index.model().data(index, Qt.DecorationRole)
-        page: PDFPage = index.model().data(index, PRolePage)
+        page: PDFPage = self._pdf.get_page(index.model().data(index, PRoleID))
         x0, y0, x1, y1 = option.rect.getRect()
 
         if option.state & QStyle.State_Selected:
@@ -93,11 +98,11 @@ class PageDelegate(QStyledItemDelegate):
 class PageWidget(QListWidget):
     message = QtCore.pyqtSignal(str)
 
-    def __init__(self, wg, pdf: PDFData):
+    def __init__(self, wg):
         super().__init__(wg)
 
         self._func_add_file = None
-        self._pdf: PDFData = pdf
+        self._pdf: PDFData = PDFData()
 
         self.setWrapping(True)
         self.setAcceptDrops(True)
@@ -119,7 +124,6 @@ class PageWidget(QListWidget):
     def add_page(self, page: PDFPage):
         item = QListWidgetItem()
         item.setData(PRoleID, page.get_id())
-        item.setData(PRolePage, page)
         item.setData(Qt.DecorationRole, page.get_pixmap(80, 80))
         item.setText(page.name_page)
         self.addItem(item)
@@ -156,7 +160,6 @@ class PageWidget(QListWidget):
                     page = self.get_page(item).copy()
                     self._pdf._addpage(page)
                     item.setData(PRoleID, page.get_id())
-                    item.setData(PRolePage, page)
                     item.setData(Qt.DecorationRole, page.get_pixmap(80, 80))
 
                 # Добавляем элемент в текущий список
@@ -205,7 +208,6 @@ class PageWidget(QListWidget):
         t_names = []
         for item in self.selectedItems():
             t_names.append(self._pdf.get_page(item.data(PRoleID)).name_page)
-
         return ', '.join(t_names)
 
     def get_size_selected(self):

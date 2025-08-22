@@ -72,9 +72,9 @@ class MyWindow(QMainWindow):
         self.ui.checkBoxImageFormatting.setChecked(config.PAGE_PAPER_FORMATTING)
         self.ui.checkBoxImageExtend.setChecked(config.PAGE_IMAGE_EXTEND)
 
-        self.pagesBasic = PageWidget(self.ui.centralwidget, pdf_storage)
+        self.pagesBasic = PageWidget(self.ui.centralwidget)
         self.ui.BasicLayout.addWidget(self.pagesBasic)
-        self.pagesSecond = PageWidget(self.ui.centralwidget, pdf_storage)
+        self.pagesSecond = PageWidget(self.ui.centralwidget)
         self.ui.SecondLayout.addWidget(self.pagesSecond)
 
         self.ui.spinquality.valueChanged.connect(self.changedSpinQuality)
