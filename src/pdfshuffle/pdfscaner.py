@@ -1,30 +1,34 @@
 #!/usr/bin/env python3
 # ----------------------------------------------------------------------------
 # Created By  : Dmitriy Aldunin @DMcraft
-# Created Date: 15/11/2024
+# Created Date: 04/10/2023
 # version ='2.10'
-# Copyright 2024 Dmitriy Aldunin
+# Copyright 2023 Dmitriy Aldunin
 # Licensed under the Apache License, Version 2.0
 # ---------------------------------------------------------------------------
 
-""" Вспомогательная программа сканирования изображений.
-
-"""
-import logging
+"""Программа для легкой и наглядной перекомбинации листов PDF файлов,
+а также добавления листов изображений из файлов и сканера."""
 import sys
-
+import os
 from loguru import logger
-from os import environ
-import scaner
+from shuffle import main as shuffle_main
 
 if __name__ == '__main__':
-    if environ.get('PRODUCTION') is None:
-        logger.remove(handler_id=None)
+    # Удаление стандартного обработчика логов Loguru
+    logger.remove()
+
+    if os.getenv('PRODUCTION') is None:
         logger.add("pdfshuffle.log", level="INFO", rotation="10 MB")
     else:
-        logger.remove(handler_id=None)
         logger.add(sys.stderr, level="DEBUG")
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    scaner.SCANER_START_MAIN = True
-    scaner.main()
+    print('Запуск программы...')
+
+    try:
+        shuffle_main()
+    except Exception as e:
+        logger.error(f"Произошла ошибка при выполнении программы: {e}")
+        print(f"Ошибка: {e}")
+
+    print('Программа завершена.')
