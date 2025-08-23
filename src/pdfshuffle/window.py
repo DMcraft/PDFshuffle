@@ -491,7 +491,8 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.label.setText(_translate("MainWindow", "Параметры вставки изображений:"))
-        self.comboBoxOrientation.setItemText(0, _translate("MainWindow", "Portret"))
+        self.comboBoxOrientation.setCurrentText(_translate("MainWindow", "Portrait"))
+        self.comboBoxOrientation.setItemText(0, _translate("MainWindow", "Portrait"))
         self.comboBoxOrientation.setItemText(1, _translate("MainWindow", "Landscape"))
         self.checkBoxImageFormatting.setToolTip(_translate("MainWindow", "форматировать изображение к стандартному листу"))
         self.checkBoxImageFormatting.setText(_translate("MainWindow", "format"))

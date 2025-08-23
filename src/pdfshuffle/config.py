@@ -4,100 +4,128 @@ from pathlib import Path
 
 from loguru import logger
 
+# Константы программы
 VERSION_PROGRAM = '2.10'
-VERSION_DATE = '22/08/2025'
+VERSION_DATE = '23/08/2025'
 
+# Путь к конфигурационному файлу
 FILE_CFG = 'config.ini'
-BOOLEAN_STATES = {'1': True, 'yes': True, 'true': True, 'on': True,
-                  '0': False, 'no': False, 'false': False, 'off': False}
 
-SCALE_SIZE = 240
-MAX_INT = 2 ** 16
+# Словарь для преобразования строковых значений в булевы
+BOOLEAN_STATES = {
+    '1': True, 'yes': True, 'true': True, 'on': True,
+    '0': False, 'no': False, 'false': False, 'off': False
+}
 
-ICON_PATH_SHUFFLE = Path.cwd() / 'icons/pdfshuffle.png'
-ICON_PATH_SCANER = Path.cwd() / 'icons/pdfscaner.png'
-logger.debug(ICON_PATH_SHUFFLE)
+# Другие константы
+MAX_UINT16 = 2 ** 16  # Используется для проверки диапазона значений
+
+# Пути иконок (используем относительные пути)
+ICON_PATH_SHUFFLE = Path(__file__).parent / 'icons' / 'pdfshuffle.png'
+ICON_PATH_SCANER = Path(__file__).parent / 'icons' / 'pdfscaner.png'
+logger.debug(f"Icon paths: {ICON_PATH_SHUFFLE}, {ICON_PATH_SCANER}")
 
 
 def _int_value(s: str) -> int:
+    """Преобразует строку в целое число, возвращает 0 при ошибке."""
     try:
         return int(s)
     except ValueError as v:
-        logger.error(f'Value error {v}')
+        logger.error(f'Value error: {v}')
         return 0
 
 
 def _get_value(section: str, option: str, fallback):
-    value = None
-    if isinstance(fallback, (str, int, bool, bytes)):
-        try:
-            value = config[section].get(option.lower())
-            if value is None:
-                return fallback
-        except Exception as e:
-            logger.error(f'Error config "{e}"!')
-            return fallback
+    """
+    Получает значение из конфигурации с учётом типа fallback.
+    Поддерживает типы: str, int, bool, bytes.
+    """
+    if not config.has_section(section):
+        return fallback
+
+    value = config[section].get(option.lower())
+
+    if value is None:
+        return fallback
 
     if isinstance(fallback, str):
         return value
     elif isinstance(fallback, bool):
-        if value.lower() not in BOOLEAN_STATES:
-            logger.error(f'Config value bool error {option}  "{value}"')
-            return fallback
+        normalized_value = value.lower()
+        if normalized_value in BOOLEAN_STATES:
+            return BOOLEAN_STATES[normalized_value]
         else:
-            return BOOLEAN_STATES[value.lower()]
+            logger.error(f'Config value bool error for "{option}": "{value}"')
+            return fallback
     elif isinstance(fallback, int):
         try:
             return int(value)
         except ValueError as v:
-            logger.error(f'Config value int error {option} "{v}"')
+            logger.error(f'Config value int error for "{option}": "{v}"')
             return fallback
     elif isinstance(fallback, bytes):
         try:
             return bytes.fromhex(value)
         except ValueError as v:
-            logger.error(f'Config value bytes error {option} "{v}"')
+            logger.error(f'Config value bytes error for "{option}": "{v}"')
             return fallback
-    return None
+    return fallback
 
 
 def int_to_bytes(mas: (tuple, list)) -> bytes:
-    t = []
+    """
+    Преобразует список или кортеж целых чисел в байты.
+    Каждое число должно быть в диапазоне [0, 2^16).
+    """
+    result = []
     for m in mas:
-        if 0 < m < 2 ** 16:
-            t.append(m // 256)
-            t.append(m % 256)
+        if 0 <= m < MAX_UINT16:
+            result.append(m // 256)
+            result.append(m % 256)
         else:
-            t.extend((0, 0))
-    return bytes(t)
+            result.extend((0, 0))
+    return bytes(result)
 
 
 def bytes_to_int(bas: bytes, min_length: int = 0):
-    t = []
+    """
+    Преобразует байты в список целых чисел.
+    Каждая пара байт интерпретируется как 16-битное число.
+    """
+    result = []
     for i in range(0, len(bas), 2):
         if i + 1 < len(bas):
-            t.append(bas[i] * 256 + bas[i + 1])
-    if len(t) < min_length:
-        t.extend([0] * (min_length - len(t)))
-    return t
+            result.append(bas[i] * 256 + bas[i + 1])
+    if len(result) < min_length:
+        result.extend([0] * (min_length - len(result)))
+    return result
 
 
+# Инициализация конфига
 config = configparser.ConfigParser()
+
+# Создаём файл конфигурации, если его нет
+if not Path(FILE_CFG).exists():
+    try:
+        logger.info(f"Файл конфигурации {FILE_CFG} не найден. Создаём новый.")
+        with open(FILE_CFG, 'w', encoding='utf-8') as f:
+            pass
+    except PermissionError as e:
+        logger.error(f"Не удалось создать файл {FILE_CFG}: {e}")
+
 config.read(FILE_CFG)
 
+# Установка дефолтных секций и значений
 config['DEFAULT'] = {'program': 'PDFshuffle'}
-config['VERSION'] = {'version': f'{VERSION_PROGRAM}',
-                     'date': f'{VERSION_DATE}'}
+config['VERSION'] = {'version': VERSION_PROGRAM, 'date': VERSION_DATE}
 
-if not config.has_section('OPTION'):
-    config.add_section('OPTION')
-if not config.has_section('PAGE'):
-    config.add_section('PAGE')
-if not config.has_section('FILE'):
-    config.add_section('FILE')
-if not config.has_section('SCAN'):
-    config.add_section('SCAN')
+for section in ['OPTION', 'PAGE', 'FILE', 'SCAN']:
+    if not config.has_section(section):
+        config.add_section(section)
 
+SCALE_SIZE = _get_value('DEFAULT', 'scale_size_default', 240)
+
+# Чтение параметров из конфига
 OPTION_SPLITTER = _get_value('OPTION', 'splitter', b'\x00')
 OPTION_WINDOW = _get_value('OPTION', 'window', b'\x00')
 OPTION_WINDOW_SCAN = _get_value('OPTION', 'windowscan', b'\x00')
@@ -111,7 +139,6 @@ PAGE_PAPER_FORMATTING = _get_value('PAGE', 'paperformatting', True)
 PAGE_IMAGE_EXTEND = _get_value('PAGE', 'imageextend', True)
 PAGE_SCALE_WIDTH_EXTEND = _get_value('PAGE', 'scalewidthextend', False)
 PAGE_SCALE_HEIGHT_EXTEND = _get_value('PAGE', 'scaleheightextend', False)
-
 PAGE_IMAGE_SIZE = _get_value('PAGE', 'imageresolution', 720)
 
 CURRENT_PATH = _get_value('FILE', 'current_path', os.path.expanduser('~'))
@@ -131,6 +158,7 @@ SCAN_SPLIT = bytes_to_int(_get_value('SCAN', 'split', int_to_bytes((0, 0, 0, 0))
 
 
 def save_config():
+    """Сохраняет текущие настройки в конфигурационный файл."""
     config.set('OPTION', 'splitter', bytes(OPTION_SPLITTER).hex())
     config.set('OPTION', 'window', bytes(OPTION_WINDOW).hex())
     config.set('OPTION', 'windowscan', bytes(OPTION_WINDOW_SCAN).hex())
@@ -158,39 +186,46 @@ def save_config():
     config.set('SCAN', 'area', SCAN_AREA)
     config.set('SCAN', 'autosave', str(SCAN_AUTOSAVE))
     config.set('SCAN', 'quality', str(SCAN_QUALITY))
-
     config.set('SCAN', 'split', int_to_bytes(SCAN_SPLIT).hex())
 
-    with open(FILE_CFG, 'w') as configfile:
-        config.write(configfile)
+    try:
+        with open(FILE_CFG, 'w', encoding='utf-8') as configfile:
+            config.write(configfile)
+    except PermissionError as e:
+        logger.error(f'Недостаточно прав для записи конфига: {e}')
 
 
-def _landing_size(size, land=False):
+def _landing_size(size, landscape=False):
+    """
+    Возвращает размер страницы в зависимости от ориентации.
+    """
     w, h = size
-    if land:
+    if landscape:
         return max(w, h), min(w, h)
     else:
         return min(w, h), max(w, h)
 
 
 def get_size_page():
-    format_paper = {'A10': (1.46, 1.02),
-                    'A9': (1.46, 2.05),
-                    'A8': (2.05, 2.91),
-                    'A7': (2.91, 4.13),
-                    'A6': (4.13, 5.83),
-                    'A5': (5.83, 8.27),
-                    'A4': (8.27, 11.69),
-                    'A3': (11.69, 16.54),
-                    'A2': (16.54, 23.39),
-                    'A1': (23.39, 33.11),
-                    'A0': (33.11, 46.81)
-                    }
+    """
+    Возвращает размер страницы в пикселях на основе DPI и формата.
+    """
+    format_paper = {
+        'A10': (1.46, 1.02),
+        'A9': (1.46, 2.05),
+        'A8': (2.05, 2.91),
+        'A7': (2.91, 4.13),
+        'A6': (4.13, 5.83),
+        'A5': (5.83, 8.27),
+        'A4': (8.27, 11.69),
+        'A3': (11.69, 16.54),
+        'A2': (16.54, 23.39),
+        'A1': (23.39, 33.11),
+        'A0': (33.11, 46.81)
+    }
 
-    if PAGE_PAPER_SIZE in format_paper:
-        page_size = format_paper[PAGE_PAPER_SIZE]
-    else:
-        page_size = (0, 0)
+    page_size = format_paper.get(PAGE_PAPER_SIZE, (0, 0))
+    width_px = int(page_size[0] * PAGE_PAPER_DPI)
+    height_px = int(page_size[1] * PAGE_PAPER_DPI)
 
-    return _landing_size((int(page_size[0] * PAGE_PAPER_DPI), int(page_size[1] * PAGE_PAPER_DPI)),
-                         PAGE_PAPER_ORIENTATION.lower() == 'landscape')
+    return _landing_size((width_px, height_px), PAGE_PAPER_ORIENTATION.lower() == 'landscape')
