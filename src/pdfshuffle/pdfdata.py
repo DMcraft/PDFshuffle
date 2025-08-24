@@ -119,14 +119,27 @@ class PDFData:
         return cls._instance
 
     def _addpage(self, page):
-        page._index = len(self.data)
-        self.data.append(page)
-        logger.debug(f'Add page # {page._index}')
+        if page is not None:
+            page._index = len(self.data)
+            self.data.append(page)
+            logger.debug(f'Add page # {page._index}')
 
     def last_page(self):
         if len(self.data) > 0:
             return self.data[-1]
         return None
+
+    def clone_id(self, id_page):
+        if id_page is None:
+            copy_page = self.last_page().copy()
+        else:
+            copy_page = self.get_page(id_page).copy()
+        if copy_page is None:
+            logger.error(f"clone_id error, id_page {id_page} not found")
+            return None
+        else:
+            self._addpage(copy_page)
+            return copy_page.get_id()
 
     def add_pdf_file(self, filename):
         start_page = len(self.data)

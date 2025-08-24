@@ -173,7 +173,7 @@ class MyWindow(QMainWindow):
         items_source = pages_in.selected_items() if selected else pages_in
 
         for item in items_source:
-            image = pages_in.get_page(item).get_image(config.MAX_INT, config.PAGE_IMAGE_SIZE,
+            image = pages_in.get_page(item).get_image(config.MAX_UINT16, config.PAGE_IMAGE_SIZE,
                                                       keep_aspect=False)
             pages_out.add_page(pdf_storage.add_image_file('', img=image))
 
