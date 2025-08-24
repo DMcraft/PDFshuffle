@@ -71,6 +71,7 @@ class MyWindow(QMainWindow):
 
         self.ui.checkBoxImageFormatting.setChecked(config.PAGE_PAPER_FORMATTING)
         self.ui.checkBoxImageExtend.setChecked(config.PAGE_IMAGE_EXTEND)
+        self.ui.checkBoxAutoSize.setChecked(config.PAGE_AUTO_SIZE)
 
         self.pagesBasic = PageWidget(self.ui.centralwidget)
         self.ui.BasicLayout.addWidget(self.pagesBasic)
@@ -86,6 +87,7 @@ class MyWindow(QMainWindow):
 
         self.ui.checkBoxImageFormatting.stateChanged.connect(self.changePaperFormatting)
         self.ui.checkBoxImageExtend.stateChanged.connect(self.changeImageExtend)
+        self.ui.checkBoxAutoSize.stateChanged.connect(self.changeAutoSize)
 
         self.ui.pushButtonScan.clicked.connect(self.winScaner)
 
@@ -312,12 +314,15 @@ class MyWindow(QMainWindow):
 
     def changePaperSize(self, index):
         config.PAGE_PAPER_SIZE = self.ui.comboBoxSizePaper.currentText()
+        self.auto_size_paper_image()
 
     def changePaperOrientation(self, index):
         config.PAGE_PAPER_ORIENTATION = self.ui.comboBoxOrientation.currentText()
+        self.auto_size_paper_image()
 
     def changePaperDPI(self, index):
         config.PAGE_PAPER_DPI = self.ui.comboBoxPaperDPI.currentData()
+        self.auto_size_paper_image()
 
     def changedSpinQuality(self, value):
         config.PAGE_QUALITY = self.ui.spinquality.value()
@@ -336,6 +341,19 @@ class MyWindow(QMainWindow):
             config.PAGE_IMAGE_EXTEND = True
         else:
             config.PAGE_IMAGE_EXTEND = False
+
+    def changeAutoSize(self, state):
+        if state == QtCore.Qt.Checked:
+            config.PAGE_AUTO_SIZE = True
+        else:
+            config.PAGE_AUTO_SIZE = False
+        self.auto_size_paper_image()
+
+    def auto_size_paper_image(self):
+        if config.PAGE_AUTO_SIZE:
+            size = min(config.get_size_page())
+            if size > 0:
+                self.ui.spinImageSize.setValue(size)
 
     @QtCore.pyqtSlot(object, int)
     def addScanImage(self, image, dpi):
