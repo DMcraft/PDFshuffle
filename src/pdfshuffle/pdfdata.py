@@ -19,7 +19,7 @@ class PDFPage:
         self.pdf: PageObject = page
         self.size = 0
 
-        self.pix: QPixmap = pix
+        self.pix: QPixmap = config.DEFAULT_ICON_PAGE
 
         self.path = pathfile
         self.name_page = name_page
@@ -50,7 +50,7 @@ class PDFPage:
         output.write(byte_arr)
         self.size = len(byte_arr.getvalue())
         images = convert_from_bytes(byte_arr.getvalue(), size=(width, height),
-                                    dpi=600, fmt="png")
+                                    dpi=config.PAGE_PAPER_DPI, fmt="png")
         return images[0]
 
     def get_pixmap(self, width: int = 0, height: int = 0) -> Image:

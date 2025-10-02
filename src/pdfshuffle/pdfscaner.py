@@ -33,7 +33,7 @@
 import sys
 import os
 from loguru import logger
-from scaner import main as scaner_main
+import scaner
 
 if __name__ == '__main__':
     # Удаление стандартного обработчика логов Loguru
@@ -47,7 +47,8 @@ if __name__ == '__main__':
     print('Запуск программы...')
 
     try:
-        scaner_main()
+        scaner.SCANER_START_MAIN = True
+        scaner.main()
     except Exception as e:
         logger.error(f"Произошла ошибка при выполнении программы: {e}")
         print(f"Ошибка: {e}")
