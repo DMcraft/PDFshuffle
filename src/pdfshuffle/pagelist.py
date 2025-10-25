@@ -195,20 +195,23 @@ class PageWidget(QListWidget):
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_A:
             self.message.emit(self.get_size_selected())
 
-    def rotate_page(self, angle=90):
+
+    def rotate_page(self, angle=90, reset=False):
         angle = angle % 360
         if angle < 0:
             angle = 360 - angle
         if angle in (0, 90, 180, 270):
-            trans_rotate = QTransform().rotate(angle)
             for item in self.selectedItems():
                 pixmap = item.data(Qt.DecorationRole)
-                if pixmap:
-                    item.setData(Qt.DecorationRole, pixmap.transformed(trans_rotate))
-                    page = self._pdf.get_page(item.data(PRoleID))
-                    if page:
-                        page.rotate(angle)
-                        yield item.data(PRoleID)
+                page = self._pdf.get_page(item.data(PRoleID))
+                if page:
+                    angle_real = 360 - (page.rotation % 360) + angle if reset else angle
+                    page.rotate(angle_real)
+                    if pixmap:
+                        trans_rotate = QTransform().rotate(angle_real)
+                        item.setData(Qt.DecorationRole, pixmap.transformed(trans_rotate))
+
+                    yield item.data(PRoleID)
         else:
             raise ValueError('Rotate page may be angle 0, 90, 180, 270')
 

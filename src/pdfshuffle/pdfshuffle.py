@@ -30,7 +30,7 @@ PDF-файлы и картинки как пазл. Перетаскивайте
 import sys
 import os
 from loguru import logger
-from shuffle import main as shuffle_main
+import shuffle
 
 if __name__ == '__main__':
     logger.remove()
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     print('Запуск программы...')
 
     try:
-        shuffle_main()
+        shuffle.main()
     except Exception as e:
         logger.error(f"Произошла ошибка при выполнении программы: {e}")
         print(f"Ошибка: {e}")

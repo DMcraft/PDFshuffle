@@ -11,15 +11,22 @@ from pdf2image import convert_from_path, convert_from_bytes
 from pypdf import PdfReader, PdfWriter, PageObject
 from PIL import Image
 
+from loadimage import load_pil_from_file, pil_image_to_qpixmap
+
 
 class PDFPage:
     def __init__(self, page, pix: QPixmap = None,
                  name_page: str = '', pathfile: str = '', comment: str = ''):
         self._index = None
         self.pdf: PageObject = page
+        self.rotation = page.rotation
         self.size = 0
 
-        self.pix: QPixmap = config.DEFAULT_ICON_PAGE
+        if pix is None:
+            self.pix = None
+            # self.pix: QPixmap = pil_image_to_qpixmap(config.DEFAULT_ICON_PAGE)
+        else:
+            self.pix = pix
 
         self.path = pathfile
         self.name_page = name_page
@@ -49,8 +56,10 @@ class PDFPage:
         output.add_page(self.pdf)
         output.write(byte_arr)
         self.size = len(byte_arr.getvalue())
+
         images = convert_from_bytes(byte_arr.getvalue(), size=(width, height),
                                     dpi=config.PAGE_PAPER_DPI, fmt="png")
+
         return images[0]
 
     def get_pixmap(self, width: int = 0, height: int = 0) -> Image:
@@ -85,10 +94,21 @@ class PDFPage:
         self.pix = pixmap
         return self
 
+
     def rotate(self, angle):
-        self.pdf.rotate(angle)
-        trans_rotate = QTransform().rotate(angle)
+
+        angle = angle % 360
+        angle_rotation = (self.rotation // 360) * -360 + angle
+        if angle_rotation + self.rotation > 359:
+            angle_rotation -= 360
+        elif angle_rotation + self.rotation < 0:
+            angle_rotation += 360
+
+        self.pdf.rotate(angle_rotation)
+        trans_rotate = QTransform().rotate(angle_rotation)
         self.pix = QPixmap(self.pix).transformed(trans_rotate)
+        self.rotation += angle_rotation
+        logger.debug(f'rotation state {self.pdf.rotation} deg')
         return self
 
     def save_image_as(self, filename, height_size: int, quality: int = 90, dpi: int = 200):

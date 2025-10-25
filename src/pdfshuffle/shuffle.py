@@ -100,7 +100,11 @@ class MyWindow(QMainWindow):
         self.ui.toolButtonSave.clicked.connect(lambda: self.pressedButtonSave(self.pagesBasic))
         self.ui.toolButtonSaveSecond.clicked.connect(lambda: self.pressedButtonSave(self.pagesSecond))
         self.ui.toolButtonRotate.clicked.connect(lambda: self.pressedButtonRotate(self.pagesBasic))
+        self.ui.toolButtonRotateDefault.clicked.connect(lambda: self.pressedButtonRotate(self.pagesBasic, 0, reset=True))
+        self.ui.toolButtonRotateContr.clicked.connect(lambda: self.pressedButtonRotate(self.pagesBasic, -90))
         self.ui.toolButtonSecondRotate.clicked.connect(lambda: self.pressedButtonRotate(self.pagesSecond))
+        self.ui.toolButtonSecondRotateDefault.clicked.connect(lambda: self.pressedButtonRotate(self.pagesSecond,0, reset=True))
+        self.ui.toolButtonSecondRotateContr.clicked.connect(lambda: self.pressedButtonRotate(self.pagesSecond, -90))
         self.ui.toolButtonClear.clicked.connect(lambda: self.pagesBasic.clear())
         self.ui.toolButtonSecondClear.clicked.connect(lambda: self.pagesSecond.clear())
 
@@ -175,6 +179,7 @@ class MyWindow(QMainWindow):
         items_source = pages_in.selected_items() if selected else pages_in
 
         for item in items_source:
+            # TODO: fix keep_aspect
             image = pages_in.get_page(item).get_image(config.PAGE_IMAGE_SIZE, config.PAGE_IMAGE_SIZE,
                                                       keep_aspect=False)
             pages_out.add_page(pdf_storage.add_image_file('', img=image))
@@ -252,9 +257,11 @@ class MyWindow(QMainWindow):
             self.ui.statusbar.showMessage('Отмена сохранения. Файл не выбран.', 3000)
         self.ui.lineviewpath.setText(self.pathfile)
 
-    def pressedButtonRotate(self, pages: PageWidget):
+
+
+    def pressedButtonRotate(self, pages: PageWidget, angle=90, reset=False):
         if len(pages.selectedItems()) > 0:
-            for _ in pages.rotate_page(90):
+            for _ in pages.rotate_page(angle, reset):
                 pass
             self.clickViewPage(pages)
         else:

@@ -1,11 +1,12 @@
+from pathlib import Path
+
 from PIL import Image, ImageDraw
 from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import Qt
 import os
 from loguru import logger
 
 
-def load_pixmap_from_file(file_path: str, size: int) -> QPixmap:
+def load_pil_from_file(file_path: Path, size: int) ->  Image.Image:
     """
     Загружает изображение и вписывает в квадрат с сохранением пропорций.
     Если изображение не найдено, создает розовый квадрат указанного размера.
@@ -29,15 +30,8 @@ def load_pixmap_from_file(file_path: str, size: int) -> QPixmap:
         # Вписываем изображение в квадрат с сохранением пропорций
         pil_image = fit_image_in_square(pil_image, size)
 
-        # Конвертация PIL Image в QPixmap через QImage
-        pixmap = pil_image_to_qpixmap(pil_image)
-
-        if pixmap.isNull():
-            logger.error(f"Не удалось создать QPixmap из изображения: {file_path}")
-            return create_pink_square(size)
-
         logger.debug(f"Изображение успешно загружено и обработано: {file_path}")
-        return pixmap
+        return pil_image
 
     except Exception as e:
         logger.error(f"Ошибка при загрузке изображения {file_path}: {str(e)}")

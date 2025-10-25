@@ -1,9 +1,9 @@
 import configparser
 import os
 from pathlib import Path
-from loadimage import load_pixmap_from_file
-
 from loguru import logger
+
+from loadimage import load_pil_from_file
 
 # Константы программы
 VERSION_PROGRAM = '2.10.1'
@@ -27,8 +27,7 @@ ICON_PATH_SCANER = Path(__file__).parent / 'icons' / 'pdfscaner.png'
 ICON_PATH_PAGE = Path(__file__).parent / 'icons' / 'page.png'
 logger.debug(f"Icon paths: {ICON_PATH_SHUFFLE}, {ICON_PATH_SCANER}")
 
-DEFAULT_ICON_PAGE = load_pixmap_from_file(ICON_PATH_PAGE, 80)
-
+DEFAULT_ICON_PAGE = load_pil_from_file(ICON_PATH_PAGE, 80)
 
 def _int_value(s: str) -> int:
     """Преобразует строку в целое число, возвращает 0 при ошибке."""
