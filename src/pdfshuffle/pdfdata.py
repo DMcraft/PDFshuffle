@@ -167,7 +167,7 @@ class PDFData:
     def add_pdf_file(self, filename):
         start_page = len(self.data)
         logger.debug("Start convert images size (80)...")
-        images = convert_from_path(filename, size=(None, 80))
+        images = convert_from_path(filename, size=(None, 80), thread_count=4)
         logger.debug(f"End convert images len - {len(images)}")
 
         pdf = PdfReader(filename)

@@ -6,8 +6,8 @@ from loguru import logger
 from loadimage import load_pil_from_file
 
 # Константы программы
-VERSION_PROGRAM = '2.10.1'
-VERSION_DATE = '02/10/2025'
+VERSION_PROGRAM = '2.10.5'
+VERSION_DATE = '25/10/2025'
 
 # Путь к конфигурационному файлу
 FILE_CFG = 'config.ini'

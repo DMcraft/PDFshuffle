@@ -2,7 +2,6 @@ import os
 import sys
 from datetime import datetime
 
-from PIL import Image
 from loguru import logger
 
 import config
@@ -10,11 +9,10 @@ import config
 from pagelist import PageWidget, PRoleID
 from pdfdata import PDFData
 from pdfdata import PDFPage
-from function import calculate_fitted_image_size
 from scaner import ScanerWindow
 from window import Ui_MainWindow
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
-from PyQt5.QtCore import QSize
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5 import QtGui, QtCore
 import shortcut
@@ -180,17 +178,37 @@ class MyWindow(QMainWindow):
     def tool_transform_to_image(pages_in: PageWidget, pages_out: PageWidget, selected=False):
         # Определяем источник элементов (все или выделенные)
         items_source = pages_in.selected_items() if selected else pages_in
+        if hasattr(items_source, '__len__'):
+            total_items = len(items_source)
+        else:
+            total_items = sum(1 for _ in items_source)
+            items_source = pages_in.selected_items() if selected else pages_in
 
-        for item in items_source:
-            # TODO: fix keep_aspect
+        logger.info(f'Items for : {total_items}')
+
+        # Создаем диалог прогресса
+        progress = QProgressDialog("Преобразование...", "Отмена", 0, total_items)
+        # progress.setWindowModality(Qt.WindowModal)
+        progress.setWindowModality(Qt.ApplicationModal)
+        progress.setMinimumDuration(0)  # Показываем сразу
+        progress.setWindowTitle("Преобразование")
+        progress.setFixedSize(500, 150)
+
+        for index, item in enumerate(items_source):
+            # Проверяем, не нажал ли пользователь Cancel
+            if progress.wasCanceled():
+                break
             image = pages_in.get_page(item).get_image(config.PAGE_IMAGE_SIZE, config.PAGE_IMAGE_SIZE,
                                                       keep_aspect=False, keep_size=True)
-            if config.PAGE_AUTO_SIZE:
-                size_image = calculate_fitted_image_size(image.size[0], image.size[1],
-                                                         config.PAGE_IMAGE_SIZE, config.PAGE_IMAGE_SIZE,
-                                                         extend=True)
-                img = image.resize(size_image, resample=Image.Resampling.BILINEAR)
             pages_out.add_page(pdf_storage.add_image_file('', img=image))
+
+            progress.setValue(index)
+            progress.setLabelText(f"Обработка элемента {index + 1} из {total_items}")
+            QApplication.processEvents()
+
+
+        progress.setValue(total_items)
+
 
     def pressed_scale(self, scale=0):
         self.scale_size += scale
@@ -212,6 +230,7 @@ class MyWindow(QMainWindow):
         page: PDFPage = pdf_storage.get_page(id_page)
         width_cm = (page.pdf.mediabox.width / 72) * 2.54
         height_cm = (page.pdf.mediabox.height / 72) * 2.54
+        effective_size_min = min(page.pdf.mediabox.width , page.pdf.mediabox.height)  * config.PAGE_PAPER_DPI / 72
 
         width_extend = 0
         height_extend = 0
@@ -226,11 +245,12 @@ class MyWindow(QMainWindow):
             pix_scaled: QPixmap = page.get_pixmap(height=self.scale_size)
 
         self.ui.labelView.setPixmap(pix_scaled)
-        # self.ui.labelView.setFixedSize(pix_scaled.width(), pix_scaled.height())
         self.ui.scrollAreaWidgetContents.setMinimumSize(pix_scaled.width(), pix_scaled.height())
+
         self.ui.status_image_size.setText(f'pdf ({width_cm:.1f} см, {height_cm:.1f} см), '
                                           f'loud ({page.pix.width()}, {page.pix.height()}), '
                                           f'scr ({pix_scaled.width()}, {pix_scaled.height()}), '
+                                          f'effect ({effective_size_min:.0f}px), '
                                           f'size {page.size // 1024} Кб'
                                           )
 
