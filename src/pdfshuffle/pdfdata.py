@@ -48,7 +48,7 @@ class PDFPage:
         else:
             return self._index
 
-    def get_image(self, width, height, keep_aspect: bool = True):
+    def get_image(self, width, height, keep_aspect: bool = True, keep_size: bool = False):
         if not keep_aspect:
             width, height = calculate_fitted_image_size(self.pix.width(), self.pix.height(), width, height)
         byte_arr = io.BytesIO()
@@ -57,8 +57,11 @@ class PDFPage:
         output.write(byte_arr)
         self.size = len(byte_arr.getvalue())
 
-        images = convert_from_bytes(byte_arr.getvalue(), size=(width, height),
-                                    dpi=config.PAGE_PAPER_DPI, fmt="png")
+        if keep_size:
+            images = convert_from_bytes(byte_arr.getvalue(), dpi=config.PAGE_PAPER_DPI, fmt="png")
+        else:
+            images = convert_from_bytes(byte_arr.getvalue(), size=(width, height),
+                                        dpi=config.PAGE_PAPER_DPI, fmt="png")
 
         return images[0]
 
@@ -195,6 +198,12 @@ class PDFData:
             white_bg = Image.new('RGB', img.size, (255, 255, 255))  # Создаем белый фон
             white_bg.paste(img, mask=img.split()[3])  # Вставляем изображение с учетом альфа-канала
             img = white_bg
+
+        if config.PAGE_AUTO_SIZE:
+            size_image = calculate_fitted_image_size(img.size[0], img.size[1],
+                                               config.PAGE_IMAGE_SIZE, config.PAGE_IMAGE_SIZE,
+                                               extend=True)
+            img = img.resize(size_image, resample=Image.Resampling.BILINEAR)
 
         if config.PAGE_PAPER_FORMATTING:
             page_size = config.get_size_page()

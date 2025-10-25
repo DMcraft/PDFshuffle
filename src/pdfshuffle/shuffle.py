@@ -1,6 +1,8 @@
 import os
 import sys
 from datetime import datetime
+
+from PIL import Image
 from loguru import logger
 
 import config
@@ -8,6 +10,7 @@ import config
 from pagelist import PageWidget, PRoleID
 from pdfdata import PDFData
 from pdfdata import PDFPage
+from function import calculate_fitted_image_size
 from scaner import ScanerWindow
 from window import Ui_MainWindow
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
@@ -181,7 +184,12 @@ class MyWindow(QMainWindow):
         for item in items_source:
             # TODO: fix keep_aspect
             image = pages_in.get_page(item).get_image(config.PAGE_IMAGE_SIZE, config.PAGE_IMAGE_SIZE,
-                                                      keep_aspect=False)
+                                                      keep_aspect=False, keep_size=True)
+            if config.PAGE_AUTO_SIZE:
+                size_image = calculate_fitted_image_size(image.size[0], image.size[1],
+                                                         config.PAGE_IMAGE_SIZE, config.PAGE_IMAGE_SIZE,
+                                                         extend=True)
+                img = image.resize(size_image, resample=Image.Resampling.BILINEAR)
             pages_out.add_page(pdf_storage.add_image_file('', img=image))
 
     def pressed_scale(self, scale=0):
