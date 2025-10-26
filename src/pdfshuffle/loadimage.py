@@ -1,8 +1,8 @@
 from pathlib import Path
-
+import os, io
 from PIL import Image, ImageDraw
 from PyQt5.QtGui import QPixmap, QImage
-import os
+
 from loguru import logger
 
 
@@ -118,8 +118,6 @@ def pil_image_to_qpixmap_simple(pil_image: Image.Image) -> QPixmap:
     Простой способ конвертации PIL Image в QPixmap через временный файл.
     Менее эффективный, но надежный.
     """
-    import tempfile
-    import io
 
     # Сохраняем изображение в буфер памяти
     buffer = io.BytesIO()

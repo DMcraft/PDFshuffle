@@ -11,8 +11,6 @@ from pdf2image import convert_from_path, convert_from_bytes
 from pypdf import PdfReader, PdfWriter, PageObject
 from PIL import Image
 
-from loadimage import load_pil_from_file, pil_image_to_qpixmap
-
 
 class PDFPage:
     def __init__(self, page, pix: QPixmap = None,

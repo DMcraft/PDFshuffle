@@ -97,10 +97,10 @@ class ConfigString:
 
     def __hash__(self):
         """
-        Возвращает хэш-значение данных, если они хешируемы.
+        Возвращает хэш-значение данных, если они хэшируемы.
 
         :return: Хэш-значение.
-        :raises TypeError: Если данные не хешируемы.
+        :raises TypeError: Если данные не хэшируемы.
         """
         return hash(tuple(self._data)) if isinstance(self._data, list) else hash(self._data)
 

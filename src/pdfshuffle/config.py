@@ -78,7 +78,7 @@ def _get_value(section: str, option: str, fallback):
 def int_to_bytes(mas: (tuple, list)) -> bytes:
     """
     Преобразует список или кортеж целых чисел в байты.
-    Каждое число должно быть в диапазоне [0, 2^16).
+    Каждое число должно быть в диапазоне [0, 2^16].
     """
     result = []
     for m in mas:

@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import datetime
 import config
@@ -9,24 +10,28 @@ from pathlib import Path
 
 from getscan import WorkerDrive
 from scanerwindow import Ui_ScanerForm
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QWidget
+from PyQt5.QtWidgets import QApplication, QFileDialog, QWidget
 from PyQt5 import QtGui, QtCore
+from PyQt5.QtCore import pyqtSignal
 
 # pyuic5 scanerwindow.ui -o ./src/pdfshuffle/scanerwindow.py
 
 SCANER_START_MAIN = False
+SCANER_TEST_PICTURE = 0
 
 
 class ScanerWindow(QWidget):
-    get_devices = QtCore.pyqtSignal()
-    get_options = QtCore.pyqtSignal(str)
-    start_scan = QtCore.pyqtSignal(dict)
-    push_image_scan = QtCore.pyqtSignal(object, int)
-    close_window = QtCore.pyqtSignal()
+    get_devices:pyqtSignal = pyqtSignal()
+    get_options:pyqtSignal = pyqtSignal(str)
+    start_scan:pyqtSignal = pyqtSignal(dict)
+    push_image_scan:pyqtSignal = pyqtSignal(object, int)
+    close_window:pyqtSignal = pyqtSignal()
 
     def __init__(self):
         super().__init__()
         self.image_buf = None
+        self.test_image = []
+
         icon = QtGui.QIcon(config.ICON_PATH_SCANER.as_posix())
         # Set up the UI
         self.ui = Ui_ScanerForm()
@@ -85,8 +90,6 @@ class ScanerWindow(QWidget):
         self.sane_thread.file_scan_signal.connect(self.processing_scan)
         self.thread.started.connect(self.sane_thread.run)
         self.sane_thread.finished.connect(self.thread.quit)
-        # self.thread.finished.connect(app.exit)
-        # start thread
         self.thread.start()
 
         self.ui.comboBox_mode.addItem(config.SCAN_MODE, config.SCAN_MODE)
@@ -121,7 +124,7 @@ class ScanerWindow(QWidget):
     def set_options(self, options):
         logger.info(f'option {options}')
 
-        if isinstance(options['mode'], list):
+        if isinstance(options['mode'], (list, tuple)):
             self.ui.comboBox_mode.clear()
             for opt in options['mode']:
                 self.ui.comboBox_mode.addItem(opt, opt)
@@ -129,7 +132,7 @@ class ScanerWindow(QWidget):
             self.ui.comboBox_mode.addItem(options['mode'], options['mode'])
         self.ui.comboBox_mode.setCurrentIndex(self.ui.comboBox_mode.findData(config.SCAN_MODE))
 
-        if isinstance(options['resolution'], list):
+        if isinstance(options['resolution'], (list, tuple)):
             self.ui.comboBox_dpi.clear()
             for opt in options['resolution']:
                 self.ui.comboBox_dpi.addItem(f'{opt} dpi', opt)
@@ -137,13 +140,21 @@ class ScanerWindow(QWidget):
             self.ui.comboBox_dpi.addItem(options['resolution'], options['resolution'])
         self.ui.comboBox_dpi.setCurrentIndex(self.ui.comboBox_dpi.findData(config.SCAN_DPI))
 
-        if isinstance(options['source'], list):
+        if isinstance(options['source'], (list, tuple)):
             self.ui.comboBox_source.clear()
             for opt in options['source']:
                 self.ui.comboBox_source.addItem(opt, opt)
         else:
             self.ui.comboBox_source.addItem(options['source'], options['source'])
         self.ui.comboBox_source.setCurrentIndex(self.ui.comboBox_source.findData(config.SCAN_SOURCE))
+
+        # test image (эмулятор сканера)
+        if isinstance(options['test-picture'], (list, tuple)):
+            logger.debug('Find: test-picture')
+            for i, opt in enumerate(options['test-picture']):
+                self.test_image.append(opt)
+                logger.debug(f'{i+1}. {opt}')
+
 
     @QtCore.pyqtSlot(str)
     def set_scan_file_name(self, text):
@@ -220,10 +231,10 @@ class ScanerWindow(QWidget):
         self.ui.lineEdit_message.setText(string)
 
     def pressed_tool_button_path(self):
-        dirname = QFileDialog.getExistingDirectory(None, 'Выбор пути для сканированных файлов', config.SCAN_PATH)
-        if len(dirname) > 0:
-            self.ui.lineEdit_path.setText(dirname)
-            config.SCAN_PATH = dirname
+        dir_name = QFileDialog.getExistingDirectory(None, 'Выбор пути для сканированных файлов', config.SCAN_PATH)
+        if len(dir_name) > 0:
+            self.ui.lineEdit_path.setText(dir_name)
+            config.SCAN_PATH = dir_name
 
     def pressed_tool_reload_devices(self):
         if self.sane_thread.is_ready():
@@ -242,6 +253,9 @@ class ScanerWindow(QWidget):
                 'mode': self.ui.comboBox_mode.currentData(),
                 'dpi': self.ui.comboBox_dpi.currentData(),
                 'source': self.ui.comboBox_source.currentData(),
+                'test-picture': self.test_image[SCANER_TEST_PICTURE if SCANER_TEST_PICTURE > 0 else
+                    random.randint(0, len(self.test_image) - 1)
+                    ] if len(self.test_image) > 0 else None,
             })
         else:
             self.set_message('Процесс занят выполнением задачи...')

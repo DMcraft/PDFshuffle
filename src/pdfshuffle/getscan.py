@@ -48,26 +48,32 @@ class WorkerDrive(QtCore.QObject):
         logger.info('Initial SANE completed.')
         return None
 
-    # [(0, 'option-cnt', 'Number of options', 'Read-only option that specifies how many options a specific devices supports.', 1, 0, 4, 4, None),
-    #  (1, 'mode-group', 'Scan mode', None, 5, 0, 0, 0, None),
-    #  (2, 'mode', 'Scan mode', 'Selects the scan mode (e.g., lineart, monochrome, or color).', 3, 0, 32, 5,  ['Lineart', 'Gray', 'Color']),
-    #  (3, 'resolution', 'Scan resolution', 'Sets the resolution of the scanned image.', 1, 4, 4, 5, [75, 100, 200, 300, 600, 1200]),
-    #  (4, 'source', 'Scan source', 'Selects the scan source (such as a document-feeder).', 3, 0, 32, 5, ['Flatbed']),
-    #  (5, 'advanced-group', 'Advanced', None, 5, 0, 0, 64, None),
-    #  (6, 'brightness', 'Brightness', 'Controls the brightness of the acquired image.', 1, 0, 4, 69, (0, 2000, 0)),
-    #  (7, 'contrast', 'Contrast', 'Controls the contrast of the acquired image.', 1, 0, 4, 69, (0, 2000, 0)),
-    #  (8, 'compression', 'Compression', 'Selects the scanner compression method ....', 3, 0, 32, 69, ['None', 'JPEG']),
-    #  (9, 'jpeg-quality', 'JPEG compression factor', 'Sets the scanner JPEG compression factor...',
-    #                      1, 0, 4, 101, (0, 100, 0)), (10, 'geometry-group', 'Geometry', None, 5, 0, 0, 64, None),
-    #  (11, 'tl-x', 'Top-left x', 'Top-left x position of scan area.', 2, 3, 4, 5, (0.0, 215.90000915527344, 0.0)),
-    #  (12, 'tl-y', 'Top-left y', 'Top-left y position of scan area.', 2, 3, 4, 5, (0.0, 297.01068115234375, 0.0)), (
-    #  13, 'br-x', 'Bottom-right x', 'Bottom-right x position of scan area.', 2, 3, 4, 5, (0.0, 215.90000915527344, 0.0)),
-    #  (14, 'br-y', 'Bottom-right y', 'Bottom-right y position of scan area.', 2, 3, 4, 5, (0.0, 297.01068115234375, 0.0))]
+# [(0, 'option-cnt', 'Number of options', 'Read-only option that specifies how many options a specific devices supports.', 1, 0, 4, 4, None),
+#  (1, 'mode-group', 'Scan mode', None, 5, 0, 0, 0, None),
+#  (2, 'mode', 'Scan mode', 'Selects the scan mode (e.g., lineart, monochrome, or color).', 3, 0, 32, 5,  ['Lineart', 'Gray', 'Color']),
+#  (3, 'resolution', 'Scan resolution', 'Sets the resolution of the scanned image.', 1, 4, 4, 5, [75, 100, 200, 300, 600, 1200]),
+#  (4, 'source', 'Scan source', 'Selects the scan source (such as a document-feeder).', 3, 0, 32, 5, ['Flatbed']),
+#  (5, 'advanced-group', 'Advanced', None, 5, 0, 0, 64, None),
+#  (6, 'brightness', 'Brightness', 'Controls the brightness of the acquired image.', 1, 0, 4, 69, (0, 2000, 0)),
+#  (7, 'contrast', 'Contrast', 'Controls the contrast of the acquired image.', 1, 0, 4, 69, (0, 2000, 0)),
+#  (8, 'compression', 'Compression', 'Selects the scanner compression method ....', 3, 0, 32, 69, ['None', 'JPEG']),
+#  (9, 'jpeg-quality', 'JPEG compression factor', 'Sets the scanner JPEG compression factor...',
+#                      1, 0, 4, 101, (0, 100, 0)), (10, 'geometry-group', 'Geometry', None, 5, 0, 0, 64, None),
+#  (11, 'tl-x', 'Top-left x', 'Top-left x position of scan area.', 2, 3, 4, 5, (0.0, 215.90000915527344, 0.0)),
+#  (12, 'tl-y', 'Top-left y', 'Top-left y position of scan area.', 2, 3, 4, 5, (0.0, 297.01068115234375, 0.0)), (
+#  13, 'br-x', 'Bottom-right x', 'Bottom-right x position of scan area.', 2, 3, 4, 5, (0.0, 215.90000915527344, 0.0)),
+#  (14, 'br-y', 'Bottom-right y', 'Bottom-right y position of scan area.', 2, 3, 4, 5, (0.0, 297.01068115234375, 0.0))]
+#
+# Активация test бэкенд
+#     sudo nano / etc / sane.d / dll.conf
+#     Раскомментировать строку test
+#
 
     @QtCore.pyqtSlot(str)
     @_locker
     def get_options(self, device):
         if self.version is not None:
+            self.message_signal.emit(f'Start read parameters process', '')
             options = {}
             try:
                 scaner = sane.open(device)
@@ -78,6 +84,7 @@ class WorkerDrive(QtCore.QObject):
                 self.message_signal.emit(f'Error get parameters!!! (device:{device})', err)
             else:
                 scaner.close()
+                self.message_signal.emit(f'Read parameters it`s Ok', '')
                 self.options_signal.emit(options)
 
     @QtCore.pyqtSlot()
@@ -108,23 +115,37 @@ class WorkerDrive(QtCore.QObject):
     @_locker
     def scaner(self, param):
         logger.info(f'Start scaner proces {param}')
+        self.message_signal.emit('Start scaner proces', '')
         try:
             dev = sane.open(param['device'])
         except (RuntimeError, sane._sane.error) as err:
             self.message_signal.emit('Error open device...', err)
             return
 
-        dev.source = param['source']
-        dev.mode = param['mode']
-        dev.resolution = param['dpi']
+        try:
+            dev.source = param['source']
+            dev.mode = param['mode']
+            dev.resolution = param['dpi']
+        except (RuntimeError, sane._sane.error, ValueError, TypeError) as err:
+            self.message_signal.emit('Error set parameters (see logs)', err)
+            return
+
+        if param['test-picture'] is not None:
+            try:
+                dev.test_picture = param['test-picture']
+            except (RuntimeError, sane._sane.error) as err:
+                logger.error(f'Error set test-picture {err}')
+                return
 
         try:
-            for image in dev.multi_scan():
+            for number, image in enumerate(dev.multi_scan()):
+                self.message_signal.emit(f'Scan page number {number + 1}', '')
                 self.file_scan_signal.emit(image)
+                self.message_signal.emit(f'AutoDocFeeder is finished, total images {number + 1}', '')
                 if dev.source.lower() == 'flatbed':
                     dev.cancel()
+                    self.message_signal.emit(f'Flatbed scanned is finished', '')
                     break
-
         except (RuntimeError, sane._sane.error) as err:
             self.message_signal.emit('Error scan image...', err)
         dev.close()

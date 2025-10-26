@@ -1,8 +1,6 @@
-from typing import Any
-
 from loguru import logger
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, QSize, QPoint, QRect
+from PyQt5.QtCore import Qt, QSize, QRect
 from PyQt5.QtGui import QKeySequence, QDragEnterEvent, QColor, QFont, QPixmap, QTransform, \
     QBrush, QPainter, QDragLeaveEvent
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QStyledItemDelegate, QStyle
