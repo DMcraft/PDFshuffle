@@ -13,6 +13,7 @@ dependencies = [
     "pytest<8.0.0,>=7.4.2",
     "python-sane<3.0.0,>=2.9.1",
     "pypdf<6.0.0,>=5.1.0",
+    "pillow==11.3.0",
 ]
 name = "pdfshuffle"
 version = "2.4.0"

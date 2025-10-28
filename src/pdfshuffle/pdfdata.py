@@ -197,6 +197,12 @@ class PDFData:
             white_bg.paste(img, mask=img.split()[3])  # Вставляем изображение с учетом альфа-канала
             img = white_bg
 
+        if config.PAGE_AUTO_ROTATE:
+            if config.PAGE_PAPER_ORIENTATION == 'Portrait' and img.size[0] > img.size[1]:
+                img = img.rotate(90, expand=True)
+            elif config.PAGE_PAPER_ORIENTATION == 'Landscape' and img.size[0] < img.size[1]:
+                img = img.rotate(90, expand=True)
+
         if config.PAGE_AUTO_SIZE:
             size_image = calculate_fitted_image_size(img.size[0], img.size[1],
                                                config.PAGE_IMAGE_SIZE, config.PAGE_IMAGE_SIZE,

@@ -130,7 +130,7 @@ class WorkerDrive(QtCore.QObject):
             self.message_signal.emit('Error set parameters (see logs)', err)
             return
 
-        if param['test-picture'] is not None:
+        if param.get('test-picture') is not None:
             try:
                 dev.test_picture = param['test-picture']
             except (RuntimeError, sane._sane.error) as err:

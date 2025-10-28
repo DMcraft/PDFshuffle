@@ -21,11 +21,11 @@ SCANER_TEST_PICTURE = 0
 
 
 class ScanerWindow(QWidget):
-    get_devices:pyqtSignal = pyqtSignal()
-    get_options:pyqtSignal = pyqtSignal(str)
-    start_scan:pyqtSignal = pyqtSignal(dict)
-    push_image_scan:pyqtSignal = pyqtSignal(object, int)
-    close_window:pyqtSignal = pyqtSignal()
+    get_devices: pyqtSignal = pyqtSignal()
+    get_options: pyqtSignal = pyqtSignal(str)
+    start_scan: pyqtSignal = pyqtSignal(dict)
+    push_image_scan: pyqtSignal = pyqtSignal(object, int)
+    close_window: pyqtSignal = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -153,8 +153,7 @@ class ScanerWindow(QWidget):
             logger.debug('Find: test-picture')
             for i, opt in enumerate(options['test-picture']):
                 self.test_image.append(opt)
-                logger.debug(f'{i+1}. {opt}')
-
+                logger.debug(f'{i + 1}. {opt}')
 
     @QtCore.pyqtSlot(str)
     def set_scan_file_name(self, text):
@@ -254,8 +253,8 @@ class ScanerWindow(QWidget):
                 'dpi': self.ui.comboBox_dpi.currentData(),
                 'source': self.ui.comboBox_source.currentData(),
                 'test-picture': self.test_image[SCANER_TEST_PICTURE if SCANER_TEST_PICTURE > 0 else
-                    random.randint(0, len(self.test_image) - 1)
-                    ] if len(self.test_image) > 0 else None,
+                random.randint(0, len(self.test_image) - 1)
+                ] if len(self.test_image) > 0 else None,
             })
         else:
             self.set_message('Процесс занят выполнением задачи...')

@@ -73,6 +73,7 @@ class MyWindow(QMainWindow):
         self.ui.checkBoxImageFormatting.setChecked(config.PAGE_PAPER_FORMATTING)
         self.ui.checkBoxImageExtend.setChecked(config.PAGE_IMAGE_EXTEND)
         self.ui.checkBoxAutoSize.setChecked(config.PAGE_AUTO_SIZE)
+        self.ui.checkBoxAutoRotate.setChecked(config.PAGE_AUTO_ROTATE)
 
         self.pagesBasic = PageWidget(self.ui.centralwidget)
         self.ui.BasicLayout.addWidget(self.pagesBasic)
@@ -89,6 +90,7 @@ class MyWindow(QMainWindow):
         self.ui.checkBoxImageFormatting.stateChanged.connect(self.changePaperFormatting)
         self.ui.checkBoxImageExtend.stateChanged.connect(self.changeImageExtend)
         self.ui.checkBoxAutoSize.stateChanged.connect(self.changeAutoSize)
+        self.ui.checkBoxAutoRotate.stateChanged.connect(self.changeAutoRotate)
 
         self.ui.pushButtonScan.clicked.connect(self.winScaner)
 
@@ -136,6 +138,7 @@ class MyWindow(QMainWindow):
             lambda: self.tool_transform_to_image(self.pagesBasic, self.pagesSecond))
         self.ui.actionTransformSelectedtoImage.triggered.connect(
             lambda: self.tool_transform_to_image(self.pagesBasic, self.pagesSecond, selected=True))
+        self.ui.actionCurePages.triggered.connect(lambda: self.tool_cure_pages(self.pagesBasic, selected=True))
 
         if not self.restoreGeometry(config.OPTION_WINDOW):
             logger.error(f'Error restore state windows: {config.OPTION_WINDOW}')
@@ -174,8 +177,7 @@ class MyWindow(QMainWindow):
         else:
             self.ui.statusbar.showMessage('Отмена сохранения. Каталог не выбран.', 3000)
 
-    @staticmethod
-    def tool_transform_to_image(pages_in: PageWidget, pages_out: PageWidget, selected=False):
+    def tool_transform_to_image(self, pages_in: PageWidget, pages_out: PageWidget, selected=False):
         # Определяем источник элементов (все или выделенные)
         items_source = pages_in.selected_items() if selected else pages_in
         if hasattr(items_source, '__len__'):
@@ -193,6 +195,7 @@ class MyWindow(QMainWindow):
         progress.setMinimumDuration(0)  # Показываем сразу
         progress.setWindowTitle("Преобразование")
         progress.setFixedSize(500, 150)
+        QApplication.processEvents()
 
         for index, item in enumerate(items_source):
             # Проверяем, не нажал ли пользователь Cancel
@@ -208,6 +211,18 @@ class MyWindow(QMainWindow):
 
 
         progress.setValue(total_items)
+
+    def tool_cure_pages(self, pages: PageWidget, selected=False):
+        items_source = pages.selected_items() if selected else pages
+        logger.debug('Start cure pages')
+        self.ui.statusbar.showMessage('Не поддерживается на данный момент', 3000)
+        # for item in items_source:
+        #     page = pages.get_page(item).pdf
+        #     print('Page')
+        #     new_mediabox = Rectangle((0, 0, 100, 100))
+        #     page.mediabox = new_mediabox
+        #     logger.debug(f'Page {page.mediabox.height} {page.mediabox.width}')
+
 
 
     def pressed_scale(self, scale=0):
@@ -383,6 +398,12 @@ class MyWindow(QMainWindow):
         else:
             config.PAGE_AUTO_SIZE = False
         self.auto_size_paper_image()
+
+    def changeAutoRotate(self, state):
+        if state == QtCore.Qt.Checked:
+            config.PAGE_AUTO_ROTATE = True
+        else:
+            config.PAGE_AUTO_ROTATE = False
 
     def auto_size_paper_image(self):
         if config.PAGE_AUTO_SIZE:
