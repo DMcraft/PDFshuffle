@@ -1,5 +1,5 @@
-import os
 import random
+import subprocess
 import sys
 import datetime
 import config
@@ -42,17 +42,25 @@ class ScanerWindow(QWidget):
         self.ui.groupBoxSave.setEnabled(config.SCAN_AUTOSAVE if SCANER_START_MAIN else False)
         self.ui.checkBox_autosave.setChecked(config.SCAN_AUTOSAVE)
 
-        self.ui.spinBox_left.setValue(config.SCAN_SPLIT[0])
-        self.ui.spinBox_upper.setValue(config.SCAN_SPLIT[1])
-        self.ui.spinBox_right.setValue(config.SCAN_SPLIT[2])
-        self.ui.spinBox_lower.setValue(config.SCAN_SPLIT[3])
-
         self.ui.comboBox_dpi.addItem(f'{config.SCAN_DPI} dpi', config.SCAN_DPI)
 
-        self.ui.comboBox_area.addItem('Full', (0, 0, 220, 300))
-        self.ui.comboBox_area.addItem('A4', (0, 0, 210, 297))
-        self.ui.comboBox_area.addItem('A4-split', (2, 2, 212, 295))
+        for key, value in config.SCAN_SPLIT.items():
+            self.ui.comboBox_area.addItem(key, value)
         self.ui.comboBox_area.setCurrentIndex(self.ui.comboBox_area.findText(config.SCAN_AREA))
+
+        shift = 0 if 'flatbed' in config.SCAN_SOURCE.lower() else 4
+        split = config.SCAN_SPLIT.get(config.SCAN_AREA)
+        if split is not None:
+            self.ui.spinBox_left.setValue(split[0 + shift])
+            self.ui.spinBox_upper.setValue(split[1 + shift])
+            self.ui.spinBox_width.setValue(split[2 + shift])
+            self.ui.spinBox_height.setValue(split[3 + shift])
+
+        # Подключаем сигналы изменения значений спинбоксов
+        self.ui.spinBox_left.valueChanged.connect(self.on_crop_area_changed)
+        self.ui.spinBox_upper.valueChanged.connect(self.on_crop_area_changed)
+        self.ui.spinBox_width.valueChanged.connect(self.on_crop_area_changed)
+        self.ui.spinBox_height.valueChanged.connect(self.on_crop_area_changed)
 
         self.ui.comboBox_typefile.addItem('JPEG', 'jpg')
         self.ui.comboBox_typefile.addItem('PDF', 'pdf')
@@ -69,9 +77,12 @@ class ScanerWindow(QWidget):
         self.ui.pushButton_scan.clicked.connect(self.pressed_button_scan)
         self.ui.pushButton_exit.clicked.connect(self.pressed_button_exit)
         self.ui.toolButton_devreload.clicked.connect(self.pressed_tool_reload_devices)
-        self.ui.toolButtonOpenDir.clicked.connect(lambda: os.system(f'xdg-open "{self.ui.lineEdit_path.text()}"'))
+        self.ui.toolButtonOpenDir.clicked.connect(lambda: subprocess.run([
+            'xdg-open', str(self.ui.lineEdit_path.text())], check=False))
         self.ui.checkBox_autosave.clicked.connect(self.pressed_check_autosave)
         self.ui.pushButton_save.clicked.connect(self.save_image)
+
+
 
         # Создание потока
         # create thread
@@ -95,6 +106,9 @@ class ScanerWindow(QWidget):
         self.ui.comboBox_mode.addItem(config.SCAN_MODE, config.SCAN_MODE)
         self.ui.comboBox_dpi.addItem(f'{config.SCAN_DPI} dpi', config.SCAN_DPI)
         self.ui.comboBox_source.addItem(config.SCAN_SOURCE, config.SCAN_SOURCE)
+
+        self.ui.comboBox_source.currentIndexChanged.connect(self.source_changed)
+        self.ui.comboBox_area.currentIndexChanged.connect(self.source_changed)
 
         # reload device
         self.ui.comboBox_device.addItem('Не определен', 'NONE')
@@ -149,11 +163,12 @@ class ScanerWindow(QWidget):
         self.ui.comboBox_source.setCurrentIndex(self.ui.comboBox_source.findData(config.SCAN_SOURCE))
 
         # test image (эмулятор сканера)
-        if isinstance(options['test-picture'], (list, tuple)):
-            logger.debug('Find: test-picture')
-            for i, opt in enumerate(options['test-picture']):
-                self.test_image.append(opt)
-                logger.debug(f'{i + 1}. {opt}')
+        if options.get('test-picture') is not None:
+            if isinstance(options['test-picture'], (list, tuple)):
+                logger.debug('Find: test-picture')
+                for i, opt in enumerate(options['test-picture']):
+                    self.test_image.append(opt)
+                    logger.debug(f'{i + 1}. {opt}')
 
     @QtCore.pyqtSlot(str)
     def set_scan_file_name(self, text):
@@ -189,13 +204,11 @@ class ScanerWindow(QWidget):
     def processing_scan(self, image):
         logger.info(f'processing image {type(image)}')
 
-        area = self.ui.comboBox_area.currentData()
-
         dpm = self.ui.comboBox_dpi.currentData() / 25.4
-        left = int(area[0] * dpm + self.ui.spinBox_left.value() * dpm)
-        upper = int(area[1] * dpm + self.ui.spinBox_upper.value() * dpm)
-        right = int(min(image.width, area[2] * dpm) - self.ui.spinBox_right.value() * dpm)
-        lower = int(min(image.height, area[3] * dpm) - self.ui.spinBox_lower.value() * dpm)
+        left = int(self.ui.spinBox_left.value() * dpm)
+        upper = int(self.ui.spinBox_upper.value() * dpm)
+        right = int(left + self.ui.spinBox_width.value() * dpm)
+        lower = int(upper + self.ui.spinBox_height.value() * dpm)
         # Validate and adjust the coordinates to be within image bounds
         left = max(0, min(left, image.width - 1))
         upper = max(0, min(upper, image.height - 1))
@@ -223,6 +236,46 @@ class ScanerWindow(QWidget):
                 self.get_options.emit(self.ui.comboBox_device.itemData(index))
             else:
                 self.set_message('Процесс занят выполнением задачи...')
+
+    def source_changed(self, index):
+        config.SCAN_AREA = self.ui.comboBox_area.currentText()
+        config.SCAN_SOURCE = self.ui.comboBox_source.currentText()
+
+        shift = 0 if 'flatbed' in config.SCAN_SOURCE.lower() else 4
+        split = config.SCAN_SPLIT.get(config.SCAN_AREA)
+        if split is not None:
+            self.ui.spinBox_left.blockSignals(True)
+            self.ui.spinBox_upper.blockSignals(True)
+            self.ui.spinBox_width.blockSignals(True)
+            self.ui.spinBox_height.blockSignals(True)
+            self.ui.spinBox_left.setValue(split[0 + shift])
+            self.ui.spinBox_upper.setValue(split[1 + shift])
+            self.ui.spinBox_width.setValue(split[2 + shift])
+            self.ui.spinBox_height.setValue(split[3 + shift])
+            self.ui.spinBox_left.blockSignals(False)
+            self.ui.spinBox_upper.blockSignals(False)
+            self.ui.spinBox_width.blockSignals(False)
+            self.ui.spinBox_height.blockSignals(False)
+
+    def on_crop_area_changed(self):
+        """Вызывается при изменении любого параметра области обрезки."""
+        left = self.ui.spinBox_left.value()
+        upper = self.ui.spinBox_upper.value()
+        width = self.ui.spinBox_width.value()
+        height = self.ui.spinBox_height.value()
+
+        logger.debug(f"Crop area updated: ({left}, {upper}, {width}, {height})")
+
+        shift = 0 if 'flatbed' in config.SCAN_SOURCE.lower() else 4
+        area = config.SCAN_SPLIT[config.SCAN_AREA]
+        if area is not None:
+            area[shift] = left
+            area[shift + 1] = upper
+            area[shift + 2] = width
+            area[shift + 3] = height
+            config.SCAN_SPLIT[config.SCAN_AREA] = area
+
+
 
     @QtCore.pyqtSlot(str, object)
     def set_message(self, string, msg=''):
@@ -271,8 +324,6 @@ class ScanerWindow(QWidget):
         config.SCAN_MODE = self.ui.comboBox_mode.currentText()
         config.SCAN_DPI = self.ui.comboBox_dpi.currentData()
         config.SCAN_AREA = self.ui.comboBox_area.currentText()
-        config.SCAN_SPLIT = (self.ui.spinBox_left.value(), self.ui.spinBox_upper.value(),
-                             self.ui.spinBox_right.value(), self.ui.spinBox_lower.value())
         config.SCAN_AUTOSAVE = self.ui.checkBox_autosave.isChecked()
         config.SCAN_QUALITY = self.ui.spinBox_quality.value()
         config.OPTION_WINDOW_SCAN = self.saveGeometry()

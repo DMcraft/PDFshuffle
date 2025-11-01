@@ -122,7 +122,7 @@ config.read(FILE_CFG)
 config['DEFAULT'] = {'program': 'PDFshuffle'}
 config['VERSION'] = {'version': VERSION_PROGRAM, 'date': VERSION_DATE}
 
-for section in ['OPTION', 'PAGE', 'FILE', 'SCAN']:
+for section in ['OPTION', 'PAGE', 'FILE', 'SCAN', 'SCAN_SPLIT']:
     if not config.has_section(section):
         config.add_section(section)
 
@@ -159,7 +159,14 @@ SCAN_AREA = _get_value('SCAN', 'area', 'Full')
 SCAN_QUALITY = _get_value('SCAN', 'quality', 90)
 SCAN_AUTOSAVE = _get_value('SCAN', 'autosave', False)
 
-SCAN_SPLIT = bytes_to_int(_get_value('SCAN', 'split', int_to_bytes((0, 0, 0, 0))), 4)
+SCAN_SPLIT = {
+    'Full': bytes_to_int(_get_value('SCAN_SPLIT',
+        'Full', int_to_bytes((0, 0, 210, 297, 0, 0, 210, 297))), 8),
+    'A4': bytes_to_int(_get_value('SCAN_SPLIT',
+                                'A4', int_to_bytes((1, 1, 210, 297, 5, 5, 210, 297))), 8),
+    'A5': bytes_to_int(_get_value('SCAN_SPLIT',
+                                  'A5', int_to_bytes((1, 1, 149, 210, 5, 5, 149, 210))), 8),
+}
 
 
 def save_config():
@@ -193,7 +200,9 @@ def save_config():
     config.set('SCAN', 'area', SCAN_AREA)
     config.set('SCAN', 'autosave', str(SCAN_AUTOSAVE))
     config.set('SCAN', 'quality', str(SCAN_QUALITY))
-    config.set('SCAN', 'split', int_to_bytes(SCAN_SPLIT).hex())
+
+    for key, value in SCAN_SPLIT.items():
+        config.set('SCAN_SPLIT', key, int_to_bytes(value).hex())
 
     try:
         with open(FILE_CFG, 'w', encoding='utf-8') as configfile:
