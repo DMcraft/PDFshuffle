@@ -46,27 +46,28 @@ class PDFPage:
         else:
             return self._index
 
-    def get_image(self, width, height, keep_aspect: bool = True, keep_size: bool = False):
-        if not keep_aspect:
-            width, height = calculate_fitted_image_size(self.pix.width(), self.pix.height(), width, height)
+    def get_image(self, width, height, keep_size_page: bool = False, keep_aspect_ratio: bool = True):
+
         byte_arr = io.BytesIO()
         output = PdfWriter()
         output.add_page(self.pdf)
         output.write(byte_arr)
         self.size = len(byte_arr.getvalue())
 
-        if keep_size:
+        if keep_size_page:
             images = convert_from_bytes(byte_arr.getvalue(), dpi=config.PAGE_PAPER_DPI, fmt="png")
         else:
-            images = convert_from_bytes(byte_arr.getvalue(), size=(width, height),
-                                        dpi=config.PAGE_PAPER_DPI, fmt="png")
+            if keep_aspect_ratio and width is not None and height is not None and self.pix is not None:
+                width, height = calculate_fitted_image_size(self.pix.width(), self.pix.height(), width, height)
+                if width < height: width = None
+                else: height = None
+            images = convert_from_bytes(byte_arr.getvalue(), size=(width, height), fmt="png")
 
         return images[0]
 
-    def get_pixmap(self, width: int = 0, height: int = 0) -> Image:
+    def get_pixmap(self, width: int = 0, height: int = 0) -> Image.Image:
         if self.pix is None:
             self._reload_pixmap()
-            return self.pix.scaled(width, height, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
 
         width_scale, height_scale = calculate_fitted_image_size(self.pix.width(), self.pix.height(),
                                                                 width, height)
@@ -90,7 +91,7 @@ class PDFPage:
         # format to pixmap
         image_pix = image.convert("RGB")
         data = image_pix.tobytes("raw", "RGB")
-        qi = QImage(data, image.size[0], image_pix.size[1], image_pix.size[0] * 3, QImage.Format.Format_RGB888)
+        qi = QImage(data, image.size[0], image_pix.size[1], image_pix.size[0] * 3, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(qi)
         self.pix = pixmap
         return self
@@ -112,13 +113,19 @@ class PDFPage:
         logger.debug(f'rotation state {self.pdf.rotation} deg')
         return self
 
-    def save_image_as(self, filename, height_size: int, quality: int = 90, dpi: int = 200):
+    def save_image_as(self, filename, long_size: int, quality: int = 90, dpi: int = 200):
         byte_arr = io.BytesIO()
         output = PdfWriter()
         output.add_page(self.pdf)
         output.write(byte_arr)
+        if self.pdf.mediabox.width < self.pdf.mediabox.height:
+            height = long_size
+            width = None
+        else:
+            height = None
+            width = long_size
 
-        images = convert_from_bytes(byte_arr.getvalue(), size=(None, height_size), fmt="png")
+        images = convert_from_bytes(byte_arr.getvalue(), size=(width, height), fmt="png")
         if images is not None and images:
             images[0].save(filename,
                            format='JPEG',
@@ -175,7 +182,7 @@ class PDFData:
             if i < len(images):
                 im = images[i].convert("RGB")
                 data = im.tobytes("raw", "RGB")
-                qi = QImage(data, im.size[0], im.size[1], im.size[0] * 3, QImage.Format.Format_RGB888)
+                qi = QImage(data, im.size[0], im.size[1], im.size[0] * 3, QImage.Format_RGB888)
                 pixmap = QPixmap.fromImage(qi)
             else:
                 pixmap = None
@@ -206,7 +213,7 @@ class PDFData:
         if config.PAGE_AUTO_SIZE:
             size_image = calculate_fitted_image_size(img.size[0], img.size[1],
                                                config.PAGE_IMAGE_SIZE, config.PAGE_IMAGE_SIZE,
-                                               extend=True)
+                                               extend=False)
             img = img.resize(size_image, resample=Image.Resampling.BILINEAR)
 
         if config.PAGE_PAPER_FORMATTING:

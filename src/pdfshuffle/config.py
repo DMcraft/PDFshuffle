@@ -1,33 +1,10 @@
 import configparser
 import os
 from pathlib import Path
+from typing import Sequence
 from loguru import logger
 
 from loadimage import load_pil_from_file
-
-# Константы программы
-VERSION_PROGRAM = '2.10.5'
-VERSION_DATE = '25/10/2025'
-
-# Путь к конфигурационному файлу
-FILE_CFG = 'config.ini'
-
-# Словарь для преобразования строковых значений в булевы
-BOOLEAN_STATES = {
-    '1': True, 'yes': True, 'true': True, 'on': True,
-    '0': False, 'no': False, 'false': False, 'off': False
-}
-
-# Другие константы
-MAX_UINT16 = 2 ** 16  # Используется для проверки диапазона значений
-
-# Пути иконок (используем относительные пути)
-ICON_PATH_SHUFFLE = Path(__file__).parent / 'icons' / 'pdfshuffle.png'
-ICON_PATH_SCANER = Path(__file__).parent / 'icons' / 'pdfscaner.png'
-ICON_PATH_PAGE = Path(__file__).parent / 'icons' / 'page.png'
-logger.debug(f"Icon paths: {ICON_PATH_SHUFFLE}, {ICON_PATH_SCANER}")
-
-DEFAULT_ICON_PAGE = load_pil_from_file(ICON_PATH_PAGE, 80)
 
 def _int_value(s: str) -> int:
     """Преобразует строку в целое число, возвращает 0 при ошибке."""
@@ -75,13 +52,63 @@ def _get_value(section: str, option: str, fallback):
     return fallback
 
 
-def int_to_bytes(mas: (tuple, list)) -> bytes:
+def _landing_size(size, landscape=False):
     """
-    Преобразует список или кортеж целых чисел в байты.
-    Каждое число должно быть в диапазоне [0, 2^16].
+    Возвращает размер страницы в зависимости от ориентации.
+    """
+    w, h = size
+    if landscape:
+        return max(w, h), min(w, h)
+    else:
+        return min(w, h), max(w, h)
+
+
+def get_size_page():
+    """
+    Возвращает размер страницы в пикселях на основе DPI и формата.
+    """
+    format_paper = {
+        'A10': (1.46, 1.02),
+        'A9': (1.46, 2.05),
+        'A8': (2.05, 2.91),
+        'A7': (2.91, 4.13),
+        'A6': (4.13, 5.83),
+        'A5': (5.83, 8.27),
+        'A4': (8.27, 11.69),
+        'A3': (11.69, 16.54),
+        'A2': (16.54, 23.39),
+        'A1': (23.39, 33.11),
+        'A0': (33.11, 46.81)
+    }
+
+    page_size = format_paper.get(PAGE_PAPER_SIZE, (0, 0))
+    width_px = int(page_size[0] * PAGE_PAPER_DPI)
+    height_px = int(page_size[1] * PAGE_PAPER_DPI)
+
+    return _landing_size((width_px, height_px), PAGE_PAPER_ORIENTATION.lower() == 'landscape')
+
+
+def int_to_bytes(int_sequence: Sequence[int]) -> bytes:
+    """
+    Преобразует последовательность целых чисел в байтовую строку.
+
+    Каждое число из входной последовательности интерпретируется как 16-битное
+    беззнаковое целое число (uint16) и преобразуется в два байта в формате
+    big-endian (старший байт первым). Числа вне диапазона [0, 65535] заменяются
+    на два нулевых байта (0x00).
+
+    Аргументы:
+        int_sequence: Последовательность целых чисел (список или кортеж).
+
+    Возвращает:
+        bytes: Байтовая строка длиной 2 * len(int_sequence).
+
+    Возвращает:
+        bytes: Байтовая строка, содержащая по два байта на каждое число из исходной
+               последовательности. Длина результирующей строки — 2 * len(int_sequence).
     """
     result = []
-    for m in mas:
+    for m in int_sequence:
         if 0 <= m < MAX_UINT16:
             result.append(m // 256)
             result.append(m % 256)
@@ -90,19 +117,52 @@ def int_to_bytes(mas: (tuple, list)) -> bytes:
     return bytes(result)
 
 
-def bytes_to_int(bas: bytes, min_length: int = 0):
-    """
-    Преобразует байты в список целых чисел.
-    Каждая пара байт интерпретируется как 16-битное число.
+def bytes_to_int(data_bytes: bytes, min_length: int = 0):
+    """Преобразует байтовую последовательность в список целых чисел по 16 бит.
+
+    Каждая пара байтов из входной последовательности интерпретируется как
+    16-битное беззнаковое целое число в порядке big-endian (старший байт первым).
+    Если длина результирующего списка меньше заданного минимального значения,
+    он дополняется нулями до нужной длины.
+
+    Аргументы:
+        data_bytes (bytes): Входная байтовая последовательность для преобразования.
+        min_length (int): Минимальная длина результирующего списка. Если
+            количество прочитанных 16-битных значений меньше, чем min_length,
+            список будет дополнен нулями. По умолчанию 0.
+
+    Возвращает:
+        list[int]: Список целых чисел, полученных из пар байтов. Длина списка
+        не меньше min_length.
     """
     result = []
-    for i in range(0, len(bas), 2):
-        if i + 1 < len(bas):
-            result.append(bas[i] * 256 + bas[i + 1])
+    for i in range(0, len(data_bytes), 2):
+        if i + 1 < len(data_bytes):
+            result.append(data_bytes[i] * 256 + data_bytes[i + 1])
     if len(result) < min_length:
         result.extend([0] * (min_length - len(result)))
     return result
 
+
+# Константы программы
+VERSION_PROGRAM = '2.10.6'
+VERSION_DATE = '05/11/2025'
+DEFAULT_DPI_VALUES = (75, 100, 150, 200, 300, 600, 1200)
+MAX_UINT16 = 2 ** 16  # Используется для проверки диапазона значений
+FILE_CFG = 'config.ini' # Путь к конфигурационному файлу
+# Словарь для преобразования строковых значений в булевы
+BOOLEAN_STATES = {
+    '1': True, 'yes': True, 'true': True, 'on': True,
+    '0': False, 'no': False, 'false': False, 'off': False
+}
+
+# Пути иконок (используем относительные пути)
+ICON_PATH_SHUFFLE = Path(__file__).parent / 'icons' / 'pdfshuffle.png'
+ICON_PATH_SCANER = Path(__file__).parent / 'icons' / 'pdfscaner.png'
+ICON_PATH_PAGE = Path(__file__).parent / 'icons' / 'page.png'
+logger.debug(f"Icon paths: {ICON_PATH_SHUFFLE}, {ICON_PATH_SCANER}")
+
+DEFAULT_ICON_PAGE = load_pil_from_file(ICON_PATH_PAGE, 80)
 
 # Инициализация конфига
 config = configparser.ConfigParser()
@@ -138,13 +198,13 @@ PAGE_PAPER_DPI = _get_value('PAGE', 'paper_dpi', 200)
 PAGE_QUALITY = _get_value('PAGE', 'quality', 90)
 PAGE_PAPER_SIZE = _get_value('PAGE', 'papersize', 'A4')
 PAGE_PAPER_ORIENTATION = _get_value('PAGE', 'paperorientation', 'portrait')
-PAGE_PAPER_FORMATTING = _get_value('PAGE', 'paperformatting', True)
-PAGE_IMAGE_EXTEND = _get_value('PAGE', 'imageextend', True)
-PAGE_AUTO_SIZE = _get_value('PAGE', 'autosize', True)
+PAGE_PAPER_FORMATTING = _get_value('PAGE', 'paperformatting', False)
+PAGE_IMAGE_EXTEND = _get_value('PAGE', 'imageextend', False)
+PAGE_AUTO_SIZE = _get_value('PAGE', 'autosize', False)
 PAGE_AUTO_ROTATE = _get_value('PAGE', 'autorotate', False)
-PAGE_SCALE_WIDTH_EXTEND = _get_value('PAGE', 'scalewidthextend', False)
-PAGE_SCALE_HEIGHT_EXTEND = _get_value('PAGE', 'scaleheightextend', False)
-PAGE_IMAGE_SIZE = _get_value('PAGE', 'imageresolution', 720)
+PAGE_SCALE_WIDTH_EXTEND = _get_value('PAGE', 'scalewidthextend', True)
+PAGE_SCALE_HEIGHT_EXTEND = _get_value('PAGE', 'scaleheightextend', True)
+PAGE_IMAGE_SIZE = _get_value('PAGE', 'imageresolution', 1169)
 
 CURRENT_PATH = _get_value('FILE', 'current_path', os.path.expanduser('~'))
 SCAN_PATH = _get_value('FILE', 'scan_path', os.path.expanduser('~'))
@@ -209,39 +269,3 @@ def save_config():
             config.write(configfile)
     except PermissionError as e:
         logger.error(f'Недостаточно прав для записи конфига: {e}')
-
-
-def _landing_size(size, landscape=False):
-    """
-    Возвращает размер страницы в зависимости от ориентации.
-    """
-    w, h = size
-    if landscape:
-        return max(w, h), min(w, h)
-    else:
-        return min(w, h), max(w, h)
-
-
-def get_size_page():
-    """
-    Возвращает размер страницы в пикселях на основе DPI и формата.
-    """
-    format_paper = {
-        'A10': (1.46, 1.02),
-        'A9': (1.46, 2.05),
-        'A8': (2.05, 2.91),
-        'A7': (2.91, 4.13),
-        'A6': (4.13, 5.83),
-        'A5': (5.83, 8.27),
-        'A4': (8.27, 11.69),
-        'A3': (11.69, 16.54),
-        'A2': (16.54, 23.39),
-        'A1': (23.39, 33.11),
-        'A0': (33.11, 46.81)
-    }
-
-    page_size = format_paper.get(PAGE_PAPER_SIZE, (0, 0))
-    width_px = int(page_size[0] * PAGE_PAPER_DPI)
-    height_px = int(page_size[1] * PAGE_PAPER_DPI)
-
-    return _landing_size((width_px, height_px), PAGE_PAPER_ORIENTATION.lower() == 'landscape')

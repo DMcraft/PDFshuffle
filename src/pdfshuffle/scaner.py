@@ -2,6 +2,7 @@ import random
 import subprocess
 import sys
 import datetime
+
 import config
 
 from loguru import logger
@@ -21,11 +22,11 @@ SCANER_TEST_PICTURE = 0
 
 
 class ScanerWindow(QWidget):
-    get_devices: pyqtSignal = pyqtSignal()
-    get_options: pyqtSignal = pyqtSignal(str)
-    start_scan: pyqtSignal = pyqtSignal(dict)
-    push_image_scan: pyqtSignal = pyqtSignal(object, int)
-    close_window: pyqtSignal = pyqtSignal()
+    get_devices = pyqtSignal()
+    get_options = pyqtSignal(str)
+    start_scan = pyqtSignal(dict)
+    push_image_scan = pyqtSignal(object, int)
+    close_window = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -56,7 +57,7 @@ class ScanerWindow(QWidget):
             self.ui.spinBox_width.setValue(split[2 + shift])
             self.ui.spinBox_height.setValue(split[3 + shift])
 
-        # Подключаем сигналы изменения значений спинбоксов
+        # Подключаем сигналы изменения значений спин боксов
         self.ui.spinBox_left.valueChanged.connect(self.on_crop_area_changed)
         self.ui.spinBox_upper.valueChanged.connect(self.on_crop_area_changed)
         self.ui.spinBox_width.valueChanged.connect(self.on_crop_area_changed)

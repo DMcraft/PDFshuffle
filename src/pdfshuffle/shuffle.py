@@ -1,7 +1,6 @@
 import os
 import sys
 from datetime import datetime
-
 from loguru import logger
 
 import config
@@ -56,13 +55,8 @@ class MyWindow(QMainWindow):
 
         self.ui.toolButtonCopyPath.clicked.connect(lambda: self.ui.lineviewpath.setText(self.ui.lineviewpathfile.text()))
 
-        self.ui.comboBoxPaperDPI.addItem('75 dpi', 75)
-        self.ui.comboBoxPaperDPI.addItem('100 dpi', 100)
-        self.ui.comboBoxPaperDPI.addItem('150 dpi', 150)
-        self.ui.comboBoxPaperDPI.addItem('200 dpi', 200)
-        self.ui.comboBoxPaperDPI.addItem('300 dpi', 300)
-        self.ui.comboBoxPaperDPI.addItem('600 dpi', 600)
-        self.ui.comboBoxPaperDPI.addItem('1200 dpi', 1200)
+        for dpi in config.DEFAULT_DPI_VALUES:
+            self.ui.comboBoxPaperDPI.addItem(f'{dpi} dpi', dpi)
         self.ui.comboBoxPaperDPI.setCurrentIndex(
             0 if self.ui.comboBoxPaperDPI.findData(config.PAGE_PAPER_DPI) < 0 else
             self.ui.comboBoxPaperDPI.findData(config.PAGE_PAPER_DPI))
@@ -74,6 +68,9 @@ class MyWindow(QMainWindow):
         self.ui.checkBoxImageExtend.setChecked(config.PAGE_IMAGE_EXTEND)
         self.ui.checkBoxAutoSize.setChecked(config.PAGE_AUTO_SIZE)
         self.ui.checkBoxAutoRotate.setChecked(config.PAGE_AUTO_ROTATE)
+
+        self.ui.toolButtonExtendWidth.setChecked(config.PAGE_SCALE_WIDTH_EXTEND)
+        self.ui.toolButtonExtendHeigth.setChecked(config.PAGE_SCALE_HEIGHT_EXTEND)
 
         self.pagesBasic = PageWidget(self.ui.centralwidget)
         self.ui.BasicLayout.addWidget(self.pagesBasic)
@@ -117,8 +114,10 @@ class MyWindow(QMainWindow):
         self.ui.toolImage_1.clicked.connect(self.pressed_tool_save_image)
         self.ui.toolButtonScalePlus.clicked.connect(lambda: self.pressed_scale(config.SCALE_SIZE))
         self.ui.toolButtonScaleMinus.clicked.connect(lambda: self.pressed_scale(config.SCALE_SIZE * -1))
-        self.ui.toolButtonExtendWidth.clicked.connect(lambda: self.pressed_scale())
-        self.ui.toolButtonExtendHeigth.clicked.connect(lambda: self.pressed_scale())
+        self.ui.toolButtonExtendWidth.toggled.connect(
+            lambda checked: (setattr(config, 'PAGE_SCALE_WIDTH_EXTEND', checked), self.clickViewPage()))
+        self.ui.toolButtonExtendHeigth.toggled.connect(
+            lambda checked: (setattr(config, 'PAGE_SCALE_HEIGHT_EXTEND', checked), self.clickViewPage()))
 
         # Menu
         self.ui.actionAddBasic.triggered.connect(lambda: self.pressedButtonAdd(self.pagesBasic))
@@ -139,6 +138,7 @@ class MyWindow(QMainWindow):
         self.ui.actionTransformSelectedtoImage.triggered.connect(
             lambda: self.tool_transform_to_image(self.pagesBasic, self.pagesSecond, selected=True))
         self.ui.actionCurePages.triggered.connect(lambda: self.tool_cure_pages(self.pagesBasic, selected=True))
+        self.ui.actionExtract.triggered.connect(lambda: self.tool_extract_images(self.pagesBasic, selected=True))
 
         if not self.restoreGeometry(config.OPTION_WINDOW):
             logger.error(f'Error restore state windows: {config.OPTION_WINDOW}')
@@ -158,15 +158,15 @@ class MyWindow(QMainWindow):
         self.ui.statusbar.showMessage(text)
 
     def tool_save_to_image(self, pages: PageWidget, selected=False):
-        filedir = QFileDialog.getExistingDirectory(None, "Save Images to directory", self.pathfile,
+        output_folder = QFileDialog.getExistingDirectory(None, "Save Images to directory", self.pathfile,
                                                    QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
-        today = datetime.today().strftime('%Y%m%d%H%M%S')
-        if filedir:
+        today = datetime.today().strftime('%Y%m%d%H%M')
+        if output_folder:
             # Определяем источник элементов (все или выделенные)
             items_source = pages.selected_items() if selected else pages
 
             for i, item in enumerate(items_source, 1):
-                filename = os.path.join(filedir, f'save_img-{today}_{i:03}.jpg')
+                filename = os.path.join(output_folder, f'save_{today}_page_{i:03}.jpg')
                 page: PDFPage = pages.get_page(item)
                 page.save_image_as(
                     filename,
@@ -202,7 +202,7 @@ class MyWindow(QMainWindow):
             if progress.wasCanceled():
                 break
             image = pages_in.get_page(item).get_image(config.PAGE_IMAGE_SIZE, config.PAGE_IMAGE_SIZE,
-                                                      keep_aspect=False, keep_size=True)
+                                                      keep_size_page=config.PAGE_AUTO_SIZE, keep_aspect_ratio=True)
             pages_out.add_page(pdf_storage.add_image_file('', img=image))
 
             progress.setValue(index)
@@ -223,6 +223,51 @@ class MyWindow(QMainWindow):
         #     page.mediabox = new_mediabox
         #     logger.debug(f'Page {page.mediabox.height} {page.mediabox.width}')
 
+    def tool_extract_images(self, pages: PageWidget, selected=False):
+        output_folder = QFileDialog.getExistingDirectory(None, "Save Images to directory", self.pathfile,
+                                                   QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        today = datetime.today().strftime('%Y%m%d%H%M')
+        if not output_folder:
+            self.ui.statusbar.showMessage('Отмена извлечения. Каталог не выбран.', 5000)
+            return
+
+        items_source = pages.selected_items() if selected else pages
+        for num, item in enumerate(items_source):
+            page = pages.get_page(item).pdf
+            image_count = 1
+            try:
+                if "/Resources" in page:
+                    resources = page["/Resources"]
+
+                    if "/XObject" in resources:
+                        xObject = resources["/XObject"]
+
+                        for obj_name, obj in xObject.items():
+                            if obj.get("/Subtype") == "/Image":
+                                # Определяем расширение
+                                filter_type = obj.get("/Filter", "")
+                                extensions = {
+                                    "/FlateDecode": ".png",
+                                    "/DCTDecode": ".jpg",
+                                    "/JPXDecode": ".jp2",
+                                    "/CCITTFaxDecode": ".tiff"
+                                }
+                                extension = extensions.get(filter_type, ".obj")
+
+                                # Сохраняем изображение
+                                image_data = obj.get_data()
+                                filename = f'extract_{today}_page_{num:03}_{image_count:02}{extension}'
+                                filepath = os.path.join(output_folder, filename)
+
+                                with open(filepath, "wb") as f:
+                                    f.write(image_data)
+
+                                logger.debug(f"Извлечен объект: {filename}")
+                                image_count += 1
+            except Exception as e:
+                self.ui.statusbar.showMessage(f'Ошибка при извлечении объекта, на странице {num}', 1500)
+                logger.debug(f'Ошибка при извлечении объекта на странице {num}: {e}')
+                continue
 
 
     def pressed_scale(self, scale=0):
@@ -235,7 +280,6 @@ class MyWindow(QMainWindow):
         self.ui.lineEditScale.setText(f'{self.scale_size / config.SCALE_SIZE}x')
 
     def clickViewPage(self, pages: PageWidget = None):
-        logger.info(pages)
         if pages is not None and pages is not self.current_pages_view:
             self.current_pages_view = pages
         elif self.current_pages_view is None:
@@ -245,7 +289,7 @@ class MyWindow(QMainWindow):
         page: PDFPage = pdf_storage.get_page(id_page)
         width_cm = (page.pdf.mediabox.width / 72) * 2.54
         height_cm = (page.pdf.mediabox.height / 72) * 2.54
-        effective_size_min = min(page.pdf.mediabox.width , page.pdf.mediabox.height)  * config.PAGE_PAPER_DPI / 72
+        effective_size_max = max(page.pdf.mediabox.width , page.pdf.mediabox.height)  * config.PAGE_PAPER_DPI / 72
 
         width_extend = 0
         height_extend = 0
@@ -265,7 +309,7 @@ class MyWindow(QMainWindow):
         self.ui.status_image_size.setText(f'pdf ({width_cm:.1f} см, {height_cm:.1f} см), '
                                           f'loud ({page.pix.width()}, {page.pix.height()}), '
                                           f'scr ({pix_scaled.width()}, {pix_scaled.height()}), '
-                                          f'effect ({effective_size_min:.0f}px), '
+                                          f'effect ({effective_size_max:.0f}px), '
                                           f'size {page.size // 1024} Кб'
                                           )
 
@@ -407,7 +451,7 @@ class MyWindow(QMainWindow):
 
     def auto_size_paper_image(self):
         if config.PAGE_AUTO_SIZE:
-            size = min(config.get_size_page())
+            size = max(config.get_size_page())
             if size > 0:
                 self.ui.spinImageSize.setValue(size)
 
