@@ -1,3 +1,5 @@
+from enum import Enum
+
 from loguru import logger
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QSize, QRect
@@ -11,6 +13,17 @@ from pdfdata import PDFPage, PDFData
 PRoleID = Qt.UserRole + 33
 PRoleComment = Qt.UserRole + 36
 
+class Colors(Enum):
+    RED = QColor(255, 0, 0)
+    ORANGE = QColor(255, 165, 0)
+    GREEN = QColor(0, 255, 0)
+    BLUE = QColor(0, 0, 255)
+    YELLOW = QColor(255, 255, 0)
+    CYAN = QColor(0, 255, 255)
+    MAGENTA = QColor(255, 0, 255)
+    BLACK = QColor(0, 0, 0)
+    WHITE = QColor(255, 255, 255)
+    GRAY = QColor(128, 128, 128)
 
 class PageDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
@@ -21,29 +34,22 @@ class PageDelegate(QStyledItemDelegate):
     def draw_indicator(
         painter: QPainter,
         rect: QRect,
-        indicator_type: str = "red",
+        indicator_type: Colors = Colors.RED,
         position: int = 0
     ):
         painter.save()
         painter.setRenderHint(QPainter.Antialiasing)
 
-        circle_radius = 8  # Радиус круга
-
-        colors = {
-            "red": QColor(255, 0, 0),
-            "orange": QColor(255, 165, 0),
-            "green": QColor(0, 255, 0),
-        }
-        color = colors.get(indicator_type, QColor(255, 0, 0))  # По умолчанию красный
+        circle_diameter = 8  # Радиус круга
 
         # Вычисляем координаты круга
-        circle_x = rect.left() + circle_radius + 5 + circle_radius * 3 * position  # Отступ от правого края
-        circle_y = rect.top() + circle_radius + 5  # По центру по вертикали
+        circle_x = rect.left() + circle_diameter + 5 + (circle_diameter + 2)  * position  # Отступ от правого края
+        circle_y = rect.top() + circle_diameter + 5  # По центру по вертикали
 
         # Рисуем круг
-        painter.setBrush(QBrush(color))
+        painter.setBrush(QBrush(indicator_type.value))
         painter.setPen(Qt.NoPen)
-        painter.drawEllipse(circle_x, circle_y, circle_radius, circle_radius)
+        painter.drawEllipse(circle_x, circle_y, circle_diameter, circle_diameter)
 
         painter.restore()
 
@@ -73,8 +79,16 @@ class PageDelegate(QStyledItemDelegate):
             w, h = img.width(), img.height()
             painter.drawPixmap(QtCore.QRect(x0 + (x1 - w) // 2, y0 + (y1 - h) // 2 - 15, w, h), img)
 
+        step_indicator = 0
         if page.size == 0:
-            self.draw_indicator(painter, option.rect, "orange")
+            self.draw_indicator(painter, option.rect, Colors.ORANGE, position=step_indicator)
+            step_indicator += 1
+        if page.is_change_path:
+            self.draw_indicator(painter, option.rect, Colors.GREEN, position=step_indicator)
+            step_indicator += 1
+        if len(page.path) == 0:
+            self.draw_indicator(painter, option.rect, Colors.MAGENTA, position=step_indicator)
+            step_indicator += 1
 
         # Подпись
         txt = index.data(Qt.DisplayRole)
@@ -102,7 +116,7 @@ class PageDelegate(QStyledItemDelegate):
 
 
 class PageWidget(QListWidget):
-    message = QtCore.pyqtSignal(str)
+    message = QtCore.pyqtSignal(str, int)
 
     def __init__(self, wg):
         super().__init__(wg)
@@ -122,18 +136,6 @@ class PageWidget(QListWidget):
     def __iter__(self):
         for i in range(self.count()):
             yield self.item(i)
-
-    def selected_items(self):
-        """Итератор по выделенным элементам"""
-        for item in self.selectedItems():
-            yield item
-
-    def add_page(self, page: PDFPage):
-        item = QListWidgetItem()
-        item.setData(PRoleID, page.get_id())
-        item.setData(Qt.DecorationRole, page.get_pixmap(80, 80))
-        item.setText(page.name_page)
-        self.addItem(item)
 
     def dragLeaveEvent(self, e: QDragLeaveEvent):
         pass
@@ -191,8 +193,20 @@ class PageWidget(QListWidget):
             QListWidget.keyPressEvent(self, event)
 
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_A:
-            self.message.emit(self.get_size_selected())
+            self.message.emit(self.get_size_selected(), 0)
 
+
+    def selected_items(self):
+        """Итератор по выделенным элементам"""
+        for item in self.selectedItems():
+            yield item
+
+    def add_page(self, page: PDFPage):
+        item = QListWidgetItem()
+        item.setData(PRoleID, page.get_id())
+        item.setData(Qt.DecorationRole, page.get_pixmap(80, 80))
+        item.setText(page.name_page)
+        self.addItem(item)
 
     def rotate_page(self, angle=90, reset=False):
         angle = angle % 360

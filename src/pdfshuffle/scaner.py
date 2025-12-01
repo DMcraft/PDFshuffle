@@ -13,7 +13,7 @@ from getscan import WorkerDrive
 from scanerwindow import Ui_ScanerForm
 from PyQt5.QtWidgets import QApplication, QFileDialog, QWidget
 from PyQt5 import QtGui, QtCore
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QTimer
 
 # pyuic5 scanerwindow.ui -o ./src/pdfshuffle/scanerwindow.py
 
@@ -40,6 +40,11 @@ class ScanerWindow(QWidget):
         self.setWindowTitle('Scaner Shuffle')
         self.setWindowIcon(icon)
 
+        # Таймер для очистки строки
+        self.timer_message = QTimer()
+        self.timer_message.setSingleShot(True)  # Таймер сработает только один раз
+        self.timer_message.timeout.connect(lambda: self.ui.lineEdit_message.setText(''))
+
         self.ui.groupBoxSave.setEnabled(config.SCAN_AUTOSAVE if SCANER_START_MAIN else False)
         self.ui.checkBox_autosave.setChecked(config.SCAN_AUTOSAVE)
 
@@ -58,10 +63,10 @@ class ScanerWindow(QWidget):
             self.ui.spinBox_height.setValue(split[3 + shift])
 
         # Подключаем сигналы изменения значений спин боксов
-        self.ui.spinBox_left.valueChanged.connect(self.on_crop_area_changed)
-        self.ui.spinBox_upper.valueChanged.connect(self.on_crop_area_changed)
-        self.ui.spinBox_width.valueChanged.connect(self.on_crop_area_changed)
-        self.ui.spinBox_height.valueChanged.connect(self.on_crop_area_changed)
+        self.ui.spinBox_left.valueChanged.connect(self.changed_on_crop_area)
+        self.ui.spinBox_upper.valueChanged.connect(self.changed_on_crop_area)
+        self.ui.spinBox_width.valueChanged.connect(self.changed_on_crop_area)
+        self.ui.spinBox_height.valueChanged.connect(self.changed_on_crop_area)
 
         self.ui.comboBox_typefile.addItem('JPEG', 'jpg')
         self.ui.comboBox_typefile.addItem('PDF', 'pdf')
@@ -108,12 +113,12 @@ class ScanerWindow(QWidget):
         self.ui.comboBox_dpi.addItem(f'{config.SCAN_DPI} dpi', config.SCAN_DPI)
         self.ui.comboBox_source.addItem(config.SCAN_SOURCE, config.SCAN_SOURCE)
 
-        self.ui.comboBox_source.currentIndexChanged.connect(self.source_changed)
-        self.ui.comboBox_area.currentIndexChanged.connect(self.source_changed)
+        self.ui.comboBox_source.currentIndexChanged.connect(self.changed_source)
+        self.ui.comboBox_area.currentIndexChanged.connect(self.changed_source)
 
         # reload device
         self.ui.comboBox_device.addItem('Не определен', 'NONE')
-        self.ui.comboBox_device.currentIndexChanged.connect(self.device_changed)
+        self.ui.comboBox_device.currentIndexChanged.connect(self.changed_device)
         if config.SCAN_DEVICE_SIGNATURE == 'NONE':
             self.pressed_tool_reload_devices()
         else:
@@ -124,9 +129,20 @@ class ScanerWindow(QWidget):
             logger.error(f'Error restore state window scan: {config.OPTION_WINDOW_SCAN}')
 
     @QtCore.pyqtSlot(str, object)
+    def set_message(self, msg, extended_msg=''):
+        logger.info(f'text {msg}, {extended_msg}')
+        self._set_message(msg, 5)
+
+    def _set_message(self, msg, timeout=0):
+        self.ui.lineEdit_message.setText(msg)
+        self.timer_message.stop()
+        if timeout > 0:
+            self.timer_message.start(timeout * 1000)
+
+    @QtCore.pyqtSlot(str, object)
     def set_devices(self, string, devices):
         """ function description """
-        logger.info(f'text {string}, {devices}')
+        logger.debug(f'text {string}, {devices}')
         self.ui.comboBox_device.clear()
         for device in devices:
             self.ui.comboBox_device.addItem(device[2], device[0])
@@ -176,34 +192,9 @@ class ScanerWindow(QWidget):
         """Function set file name in config."""
         config.SCAN_FILE_NAME = text
 
-    def pressed_check_autosave(self, check):
-        if SCANER_START_MAIN:
-            if check:
-                self.ui.groupBoxSave.setEnabled(True)
-            else:
-                self.ui.groupBoxSave.setEnabled(False)
-
-    def save_image(self):
-        if self.image_buf is None:
-            self.set_message('Нет изображения')
-        else:
-            if SCANER_START_MAIN:
-                path = Path(self.ui.lineEdit_path.text())
-                if path.is_dir():
-                    file_name = ''.join((self.ui.lineEdit_filename.text(), '_',
-                                         datetime.datetime.today().strftime("%Y%m%d-%H%M%S"),
-                                         '.', self.ui.comboBox_typefile.currentData()))
-                    path = Path.joinpath(path, file_name)
-                    self.image_buf.save(path, quality=self.ui.spinBox_quality.value(),
-                                        dpi=(self.ui.comboBox_dpi.currentData(), self.ui.comboBox_dpi.currentData()))
-                else:
-                    self.set_message('Неверное имя каталога')
-            else:
-                self.push_image_scan.emit(self.image_buf, self.ui.comboBox_dpi.currentData())
-
     @QtCore.pyqtSlot(object)
     def processing_scan(self, image):
-        logger.info(f'processing image {type(image)}')
+        logger.debug(f'processing image {type(image)}')
 
         dpm = self.ui.comboBox_dpi.currentData() / 25.4
         left = int(self.ui.spinBox_left.value() * dpm)
@@ -226,8 +217,8 @@ class ScanerWindow(QWidget):
         else:
             self.push_image_scan.emit(crop_image, self.ui.comboBox_dpi.currentData())
 
-    def device_changed(self, index):
-        logger.info('Device changed')
+    def changed_device(self, index):
+        logger.debug('Device changed')
         if index >= 0:
             if self.sane_thread.is_ready():
                 config.SCAN_MODE = self.ui.comboBox_mode.currentData()
@@ -236,9 +227,9 @@ class ScanerWindow(QWidget):
 
                 self.get_options.emit(self.ui.comboBox_device.itemData(index))
             else:
-                self.set_message('Процесс занят выполнением задачи...')
+                self._set_message('Процесс занят выполнением задачи...', 2)
 
-    def source_changed(self, index):
+    def changed_source(self, index):
         config.SCAN_AREA = self.ui.comboBox_area.currentText()
         config.SCAN_SOURCE = self.ui.comboBox_source.currentText()
 
@@ -258,7 +249,7 @@ class ScanerWindow(QWidget):
             self.ui.spinBox_width.blockSignals(False)
             self.ui.spinBox_height.blockSignals(False)
 
-    def on_crop_area_changed(self):
+    def changed_on_crop_area(self):
         """Вызывается при изменении любого параметра области обрезки."""
         left = self.ui.spinBox_left.value()
         upper = self.ui.spinBox_upper.value()
@@ -276,12 +267,12 @@ class ScanerWindow(QWidget):
             area[shift + 3] = height
             config.SCAN_SPLIT[config.SCAN_AREA] = area
 
-
-
-    @QtCore.pyqtSlot(str, object)
-    def set_message(self, string, msg=''):
-        logger.info(f'text {string}, {msg}')
-        self.ui.lineEdit_message.setText(string)
+    def pressed_check_autosave(self, check):
+        if SCANER_START_MAIN:
+            if check:
+                self.ui.groupBoxSave.setEnabled(True)
+            else:
+                self.ui.groupBoxSave.setEnabled(False)
 
     def pressed_tool_button_path(self):
         dir_name = QFileDialog.getExistingDirectory(None, 'Выбор пути для сканированных файлов', config.SCAN_PATH)
@@ -293,12 +284,11 @@ class ScanerWindow(QWidget):
         if self.sane_thread.is_ready():
             self.get_devices.emit()
         else:
-            self.set_message('Процесс занят выполнением задачи...')
+            self._set_message('Процесс занят выполнением задачи...', 2)
 
     def pressed_button_scan(self):
-        logger.info('Button Scan')
         logger.debug(f'Ready thread: {self.sane_thread.is_ready()}')
-        logger.info(f'{self.ui.comboBox_device.currentData()}')
+        logger.debug(f'{self.ui.comboBox_device.currentData()}')
 
         if self.sane_thread.is_ready():
             self.start_scan.emit({
@@ -311,11 +301,29 @@ class ScanerWindow(QWidget):
                 ] if len(self.test_image) > 0 else None,
             })
         else:
-            self.set_message('Процесс занят выполнением задачи...')
+            self._set_message('Процесс занят выполнением задачи...', 2)
 
     def pressed_button_exit(self):
         logger.info('Button Exit')
         self.close()
+
+    def save_image(self):
+        if self.image_buf is None:
+            self._set_message('Нет изображения', 3)
+        else:
+            if SCANER_START_MAIN:
+                path = Path(self.ui.lineEdit_path.text())
+                if path.is_dir():
+                    file_name = ''.join((self.ui.lineEdit_filename.text(), '_',
+                                         datetime.datetime.today().strftime("%Y%m%d-%H%M%S"),
+                                         '.', self.ui.comboBox_typefile.currentData()))
+                    path = Path.joinpath(path, file_name)
+                    self.image_buf.save(path, quality=self.ui.spinBox_quality.value(),
+                                        dpi=(self.ui.comboBox_dpi.currentData(), self.ui.comboBox_dpi.currentData()))
+                else:
+                    self._set_message('Неверное имя каталога', 3)
+            else:
+                self.push_image_scan.emit(self.image_buf, self.ui.comboBox_dpi.currentData())
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         logger.info('Close scaner!')

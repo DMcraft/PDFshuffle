@@ -1,5 +1,6 @@
 import io
 import os
+from pathlib import Path
 
 from loguru import logger
 import config
@@ -27,6 +28,7 @@ class PDFPage:
             self.pix = pix
 
         self.path = pathfile
+        self.is_change_path = False
         self.name_page = name_page
         self.comment = comment
 
@@ -39,6 +41,10 @@ class PDFPage:
         new_page = PDFPage(page_copy, None, self.name_page, self.path, self.comment)
 
         return new_page
+
+    def set_new_path(self, path):
+        self.path = path
+        self.is_change_path = True
 
     def get_id(self):
         if self._index is None:
@@ -152,6 +158,12 @@ class PDFData:
             self.data.append(page)
             logger.debug(f'Add page # {page._index}')
 
+    def clear(self):
+        if len(self.data) > 0:
+            self.data.clear()
+            self.index_file = 0
+            logger.debug(f'Clear data')
+
     def last_page(self):
         if len(self.data) > 0:
             return self.data[-1]
@@ -228,8 +240,6 @@ class PDFData:
         else:
             canvas_image = img.convert("RGB")
 
-        logger.info(f'PAGE_QUALITY {config.PAGE_QUALITY}, PAGE_PAPER_DPI {config.PAGE_PAPER_DPI}')
-
         canvas_image.save(img_byte_arr, format='PDF', quality=config.PAGE_QUALITY,
                           dpi=(config.PAGE_PAPER_DPI, config.PAGE_PAPER_DPI))
         pdf = PdfReader(img_byte_arr)
@@ -248,11 +258,13 @@ class PDFData:
         else:
             raise ValueError("id_page error value")
 
-    def save_as(self, filename, pgs):
+    def save_as(self, filename:Path, pgs):
         output = PdfWriter()
+        path = str(filename.parent)
         for i in pgs:
-            output.add_page(self.get_page(i).pdf)
-
+            page = self.get_page(i)
+            output.add_page(page.pdf)
+            page.set_new_path(path)
         with open(filename, 'wb') as f:
             output.write(f)
 
