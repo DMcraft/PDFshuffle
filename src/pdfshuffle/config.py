@@ -6,6 +6,7 @@ from loguru import logger
 
 from loadimage import load_pil_from_file
 
+
 def _int_value(s: str) -> int:
     """Преобразует строку в целое число, возвращает 0 при ошибке."""
     try:
@@ -15,15 +16,15 @@ def _int_value(s: str) -> int:
         return 0
 
 
-def _get_value(section: str, option: str, fallback):
+def _get_value(config_section: str, option: str, fallback):
     """
     Получает значение из конфигурации с учётом типа fallback.
     Поддерживает типы: str, int, bool, bytes.
     """
-    if not config.has_section(section):
+    if not config.has_section(config_section):
         return fallback
 
-    value = config[section].get(option.lower())
+    value = config[config_section].get(option.lower())
 
     if value is None:
         return fallback
@@ -145,11 +146,11 @@ def bytes_to_int(data_bytes: bytes, min_length: int = 0):
 
 
 # Константы программы
-VERSION_PROGRAM = '2.10.6'
-VERSION_DATE = '05/11/2025'
+VERSION_PROGRAM = '2.10.7'
+VERSION_DATE = '05/12/2025'
 DEFAULT_DPI_VALUES = (75, 100, 150, 200, 300, 600, 1200)
 MAX_UINT16 = 2 ** 16  # Используется для проверки диапазона значений
-FILE_CFG = 'config.ini' # Путь к конфигурационному файлу
+FILE_CFG = 'config.ini'  # Путь к конфигурационному файлу
 # Словарь для преобразования строковых значений в булевы
 BOOLEAN_STATES = {
     '1': True, 'yes': True, 'true': True, 'on': True,
@@ -167,16 +168,12 @@ DEFAULT_ICON_PAGE = load_pil_from_file(ICON_PATH_PAGE, 80)
 # Инициализация конфига
 config = configparser.ConfigParser()
 
-# Создаём файл конфигурации, если его нет
-if not Path(FILE_CFG).exists():
-    try:
-        logger.info(f"Файл конфигурации {FILE_CFG} не найден. Создаём новый.")
-        with open(FILE_CFG, 'w', encoding='utf-8') as f:
-            pass
-    except PermissionError as e:
-        logger.error(f"Не удалось создать файл {FILE_CFG}: {e}")
-
-config.read(FILE_CFG)
+files_read_ok = config.read(FILE_CFG)
+if len(files_read_ok) > 0:
+    print(f"Файл конфигурации {files_read_ok[0]} успешно прочитан.")
+else:
+    logger.error(f"Файл конфигурации {FILE_CFG} не найден.")
+    print(f"Файл конфигурации {FILE_CFG} не найден.")
 
 # Установка дефолтных секций и значений
 config['DEFAULT'] = {'program': 'PDFshuffle'}
@@ -221,9 +218,9 @@ SCAN_AUTOSAVE = _get_value('SCAN', 'autosave', False)
 
 SCAN_SPLIT = {
     'Full': bytes_to_int(_get_value('SCAN_SPLIT',
-        'Full', int_to_bytes((0, 0, 210, 297, 0, 0, 210, 297))), 8),
+                                    'Full', int_to_bytes((0, 0, 210, 297, 0, 0, 210, 297))), 8),
     'A4': bytes_to_int(_get_value('SCAN_SPLIT',
-                                'A4', int_to_bytes((1, 1, 210, 297, 5, 5, 210, 297))), 8),
+                                  'A4', int_to_bytes((1, 1, 210, 297, 5, 5, 210, 297))), 8),
     'A5': bytes_to_int(_get_value('SCAN_SPLIT',
                                   'A5', int_to_bytes((1, 1, 149, 210, 5, 5, 149, 210))), 8),
 }

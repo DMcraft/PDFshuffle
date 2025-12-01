@@ -13,6 +13,7 @@ from pdfdata import PDFPage, PDFData
 PRoleID = Qt.UserRole + 33
 PRoleComment = Qt.UserRole + 36
 
+
 class Colors(Enum):
     RED = QColor(255, 0, 0)
     ORANGE = QColor(255, 165, 0)
@@ -25,6 +26,7 @@ class Colors(Enum):
     WHITE = QColor(255, 255, 255)
     GRAY = QColor(128, 128, 128)
 
+
 class PageDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,10 +34,10 @@ class PageDelegate(QStyledItemDelegate):
 
     @staticmethod
     def draw_indicator(
-        painter: QPainter,
-        rect: QRect,
-        indicator_type: Colors = Colors.RED,
-        position: int = 0
+            painter: QPainter,
+            rect: QRect,
+            indicator_type: Colors = Colors.RED,
+            position: int = 0
     ):
         painter.save()
         painter.setRenderHint(QPainter.Antialiasing)
@@ -43,7 +45,7 @@ class PageDelegate(QStyledItemDelegate):
         circle_diameter = 8  # Радиус круга
 
         # Вычисляем координаты круга
-        circle_x = rect.left() + circle_diameter + 5 + (circle_diameter + 2)  * position  # Отступ от правого края
+        circle_x = rect.left() + circle_diameter + 5 + (circle_diameter + 2) * position  # Отступ от правого края
         circle_y = rect.top() + circle_diameter + 5  # По центру по вертикали
 
         # Рисуем круг
@@ -101,8 +103,9 @@ class PageDelegate(QStyledItemDelegate):
         font_metrics = painter.fontMetrics()
         text_width = font_metrics.horizontalAdvance(txt2)
         font_height = font_metrics.height()
-        painter.fillRect(QtCore.QRect(x0 + x1 - 12 - text_width, y0  + 8, text_width + 4, font_height + 4), QColor('white'))
-        painter.drawText(QtCore.QRect(x0 + x1 - 10 - text_width, y0  + 10, text_width, font_height), Qt.AlignLeft, txt2)
+        painter.fillRect(QtCore.QRect(x0 + x1 - 12 - text_width, y0 + 8, text_width + 4, font_height + 4),
+                         QColor('white'))
+        painter.drawText(QtCore.QRect(x0 + x1 - 10 - text_width, y0 + 10, text_width, font_height), Qt.AlignLeft, txt2)
 
     def sizeHint(self, option, index: QtCore.QModelIndex) -> QtCore.QSize:
         """
@@ -194,7 +197,6 @@ class PageWidget(QListWidget):
 
         if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_A:
             self.message.emit(self.get_size_selected(), 0)
-
 
     def selected_items(self):
         """Итератор по выделенным элементам"""

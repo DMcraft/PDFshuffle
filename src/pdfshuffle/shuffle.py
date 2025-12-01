@@ -165,7 +165,8 @@ class MyWindow(QMainWindow):
 
     def tool_save_to_images(self, pages: PageWidget, selected=False):
         output_folder = QFileDialog.getExistingDirectory(None, "Save Images to directory", self.pathfile,
-                                                         QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+                                                         QFileDialog.Option(QFileDialog.ShowDirsOnly |
+                                                                            QFileDialog.DontResolveSymlinks))
         today = datetime.today().strftime('%Y%m%d%H%M')
         if output_folder:
             # Определяем источник элементов (все или выделенные)
@@ -240,20 +241,11 @@ class MyWindow(QMainWindow):
 
         progress.setValue(total_items)
 
-    def tool_cure_pages(self, pages: PageWidget, selected=False):
-        items_source = pages.selected_items() if selected else pages
-        logger.debug('Start cure pages')
-        self._set_message('Не поддерживается на данный момент')
-        # for item in items_source:
-        #     page = pages.get_page(item).pdf
-        #     print('Page')
-        #     new_mediabox = Rectangle((0, 0, 100, 100))
-        #     page.mediabox = new_mediabox
-        #     logger.debug(f'Page {page.mediabox.height} {page.mediabox.width}')
-
     def tool_extract_images(self, pages: PageWidget, selected=False):
-        output_folder = QFileDialog.getExistingDirectory(None, "Save Images to directory", self.pathfile,
-                                                         QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        output_folder = QFileDialog.getExistingDirectory(None, "Save Images to directory",
+                                                         self.pathfile,
+                                                         QFileDialog.Option(QFileDialog.ShowDirsOnly |
+                                                                            QFileDialog.DontResolveSymlinks))
         today = datetime.today().strftime('%Y%m%d%H%M')
         if not output_folder:
             self._set_message('Отмена извлечения. Каталог не выбран.', 5)
@@ -268,9 +260,9 @@ class MyWindow(QMainWindow):
                     resources = page["/Resources"]
 
                     if "/XObject" in resources:
-                        xObject = resources["/XObject"]
+                        x_object = resources["/XObject"]
 
-                        for obj_name, obj in xObject.items():
+                        for obj_name, obj in x_object.items():
                             if obj.get("/Subtype") == "/Image":
                                 filter_type = obj.get("/Filter", "")
 

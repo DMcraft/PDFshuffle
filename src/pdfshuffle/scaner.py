@@ -88,8 +88,6 @@ class ScanerWindow(QWidget):
         self.ui.checkBox_autosave.clicked.connect(self.pressed_check_autosave)
         self.ui.pushButton_save.clicked.connect(self.save_image)
 
-
-
         # Создание потока
         # create thread
         self.thread = QtCore.QThread()

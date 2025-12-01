@@ -6,7 +6,7 @@ from PyQt5.QtGui import QPixmap, QImage
 from loguru import logger
 
 
-def load_pil_from_file(file_path: Path, size: int) ->  Image.Image:
+def load_pil_from_file(file_path: Path, size: int) -> Image.Image:
     """
     Загружает изображение и вписывает в квадрат с сохранением пропорций.
     Если изображение не найдено, создает розовый квадрат указанного размера.
@@ -47,18 +47,18 @@ def pil_image_to_qpixmap(pil_image: Image.Image) -> QPixmap:
     """
     # Конвертируем PIL Image в байты
     if pil_image.mode == 'RGB':
-        format = QImage.Format_RGB888
+        format_image = QImage.Format_RGB888
     elif pil_image.mode == 'RGBA':
-        format = QImage.Format_RGBA8888
+        format_image = QImage.Format_RGBA8888
     else:
         pil_image = pil_image.convert('RGB')
-        format = QImage.Format_RGB888
+        format_image = QImage.Format_RGB888
 
     data = pil_image.tobytes('raw', pil_image.mode)
-    qimage = QImage(data, pil_image.width, pil_image.height,
-                    pil_image.width * len(pil_image.mode), format)
+    q_image = QImage(data, pil_image.width, pil_image.height,
+                    pil_image.width * len(pil_image.mode), format_image)
 
-    return QPixmap.fromImage(qimage)
+    return QPixmap.fromImage(q_image)
 
 
 def create_pink_square(size: int) -> QPixmap:
