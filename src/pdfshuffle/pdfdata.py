@@ -92,6 +92,8 @@ class PDFPage:
                 height = ((height + config.SCALE_SIZE - 1) // config.SCALE_SIZE) * config.SCALE_SIZE
         width_scale, height_scale = calculate_fitted_image_size(self.pdf.mediabox.width, self.pdf.mediabox.height,
                                                                 0, height, extend=True)
+        if self.rotation == 90 or self.rotation == 270:
+            width_scale, height_scale = height_scale, width_scale
         logger.debug(f'Reload scale: w{width_scale} х h{height_scale}')
         image = self.get_image(width_scale or None, height_scale or None)
         # format to pixmap

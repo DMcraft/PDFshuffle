@@ -1,7 +1,10 @@
+import io
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
+
+from PIL import Image
 from loguru import logger
 
 import config
@@ -9,7 +12,7 @@ import config
 from pagelist import PageWidget, PRoleID
 from pdfdata import PDFData
 from pdfdata import PDFPage
-from toolextract import detect_file_format
+from toolextract import detect_file_format, decode_indexed_image, decode_1bit_image
 from scaner import ScanerWindow
 from window import Ui_MainWindow
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
@@ -154,6 +157,8 @@ class MyWindow(QMainWindow):
             logger.error(f'Error restore state windows: {config.OPTION_WINDOW}')
         if not self.ui.splitterView.restoreState(config.OPTION_SPLITTER):
             logger.error(f'Error restore state splitter: {config.OPTION_SPLITTER}')
+        self.ui.splitterView.splitterMoved.connect(lambda: self.update_view_image_size())
+        self.ui.splitterView.splitterMoved.connect(lambda: self.update_pages_size())
 
         self.pagesBasic.connect_add_file(self.pressed_button_add)
         self.pagesSecond.connect_add_file(self.pressed_button_add)
@@ -268,21 +273,64 @@ class MyWindow(QMainWindow):
 
                                 # определение типа вложения
                                 extensions = {
-                                    "/FlateDecode": "FLT",
-                                    "/DCTDecode": "DCT",
-                                    "/JPXDecode": "JPX",
-                                    "/CCITTFaxDecode": "CCT"
+                                    "/FlateDecode": "FLT",      # Обычно PNG
+                                    "/DCTDecode": "DCT",        # JPEG
+                                    "/JPXDecode": "JPX",        # JPEG2000
+                                    "/CCITTFaxDecode": "CCT",   # TIFF (CCITT Group 3/4)
+                                    "/JBIG2Decode": "JB2",      # JBIG2
+                                    "/LZWDecode": "TIF",        # LZW compressed
                                 }
-                                if isinstance(filter_type, list):
-                                    type_f = ""
-                                    for t in filter_type:
-                                        type_f += extensions.get(t, "OBJ")
+                                filter_types = filter_type if isinstance(filter_type, list) else [filter_type]
+                                type_f = "".join(extensions.get(t, "OBJ") for t in filter_types)
+                                image_data = obj.get_data()
+
+                                if "/FlateDecode" in filter_types:
+                                    # Параметры изображения
+                                    width = obj["/Width"]
+                                    height = obj["/Height"]
+                                    colorspace = obj["/ColorSpace"]
+                                    bits = obj.get("/BitsPerComponent", 8)
+                                    raw_data = obj.get_data()
+                                    extension = ".png"
+                                    img = None
+                                    logger.debug(f"Page {num + 1}, Image {image_count}: {width}x{height}, {colorspace}, {bits} bits")
+
+                                    # Определяем формат вывода
+                                    if isinstance(colorspace, (list, tuple) ) and colorspace[0] == "/Indexed":
+                                        img = decode_indexed_image(raw_data, width, height, colorspace)
+
+                                    elif colorspace == "/DeviceGray" and bits == 1:
+                                        # 1-битное черно-белое
+                                        img = decode_1bit_image(raw_data, width, height)
+                                        pass
+
+                                    elif colorspace == "/DeviceGray" and bits == 8:
+                                        # 8-битное оттенки серого
+                                        img = Image.frombytes("L", (width, height), raw_data)
+
+                                    elif colorspace == "/DeviceRGB":
+                                        # RGB
+                                        img = Image.frombytes("RGB", (width, height), raw_data)
+
+                                    elif colorspace == "/DeviceCMYK":
+                                        # CMYK (конвертируем в RGB)
+                                        # Для CMYK нужна специальная обработка
+                                        # Простой способ - использовать PIL в режиме CMYK
+                                        img = Image.frombytes("CMYK", (width, height), raw_data)
+                                        img.convert("RGB")
+
+                                    else:
+                                        # Неизвестный формат - сохраняем RAW
+                                        extension = ".raw"
+
+                                    if img:
+                                        img_bytes = io.BytesIO()
+                                        img.save(img_bytes, format="PNG")
+                                        image_data = img_bytes.getvalue()
                                 else:
-                                    type_f = extensions.get(filter_type, "OBJ")
+                                    extension = detect_file_format(image_data)
 
                                 # Сохраняем изображение
-                                image_data = obj.get_data()
-                                extension = detect_file_format(image_data)
                                 filename = f'extract_{today}_page_{num:03}_{image_count:02}-{type_f}{extension}'
                                 filepath = os.path.join(output_folder, filename)
 
